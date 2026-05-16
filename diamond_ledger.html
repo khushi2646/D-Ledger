@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diamond Ledger</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #f7f6f2;
+    --surface: #ffffff;
+    --surface2: #f0efe9;
+    --border: #e2e0d8;
+    --border2: #cccabe;
+    --text: #1a1916;
+    --text2: #6b6960;
+    --text3: #9b9a94;
+    --green: #2d6a4f;
+    --green-bg: #eaf4ef;
+    --red: #9b2335;
+    --red-bg: #fbedef;
+    --amber: #7a4f00;
+    --amber-bg: #fef7e6;
+    --blue: #1a4a7a;
+    --blue-bg: #eaf2fb;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* Layout */
+  .shell { max-width: 1100px; margin: 0 auto; padding: 0 20px 60px; }
+
+  /* Header */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 0 16px; border-bottom: 1px solid var(--border);
+    margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .logo-mark {
+    width: 38px; height: 38px; background: var(--text); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+    flex-shrink: 0;
+  }
+  .app-title { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+  .app-sub { font-size: 12px; color: var(--text3); margin-top: 1px; }
+
+  /* Drive status */
+  .drive-status {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 6px 12px; font-size: 12px; color: var(--text2);
+    cursor: pointer; transition: background 0.15s;
+  }
+  .drive-status:hover { background: var(--surface2); }
+  .drive-dot { width: 7px; height: 7px; border-radius: 50%; background: #ccc; flex-shrink: 0; }
+  .drive-dot.ok { background: var(--green); }
+  .drive-dot.err { background: var(--red); }
+  .drive-dot.busy { background: var(--amber); animation: blink 0.8s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* Drive config panel */
+  .drive-panel {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px 20px; margin-bottom: 20px; display: none;
+  }
+  .drive-panel.open { display: block; }
+  .drive-panel h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+  .drive-panel p { font-size: 13px; color: var(--text2); margin-bottom: 12px; line-height: 1.6; }
+  .drive-panel ol { font-size: 13px; color: var(--text2); padding-left: 18px; line-height: 1.9; margin-bottom: 14px; }
+  .drive-panel a { color: var(--blue); }
+  .input-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .input-row input { flex: 1; min-width: 200px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 2px; margin-bottom: 24px; background: var(--surface2); border-radius: var(--radius); padding: 4px; border: 1px solid var(--border); width: fit-content; }
+  .tab {
+    padding: 7px 18px; font-size: 13px; font-weight: 500; cursor: pointer;
+    border: none; background: none; color: var(--text2); border-radius: var(--radius-sm);
+    transition: all 0.15s; font-family: inherit;
+  }
+  .tab.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  /* Stats grid */
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px 16px; box-shadow: var(--shadow);
+  }
+  .stat-label { font-size: 11px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .stat-val { font-size: 24px; font-weight: 600; letter-spacing: -0.5px; font-family: 'DM Mono', monospace; }
+  .stat-val.positive { color: var(--green); }
+  .stat-val.negative { color: var(--red); }
+  .stat-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
+
+  /* Card */
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow); margin-bottom: 20px; overflow: hidden;
+  }
+  .card-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+  .card-title { font-size: 14px; font-weight: 600; }
+  .card-body { padding: 20px; }
+
+  /* Form */
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 16px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; }
+  .field input, .field select {
+    padding: 9px 11px; font-size: 14px; font-family: inherit;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--surface); color: var(--text); outline: none; width: 100%;
+    transition: border-color 0.15s;
+  }
+  .field input:focus, .field select:focus { border-color: var(--text2); }
+  .field input[list] { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239b9a94' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+
+  /* Buttons */
+  .btn {
+    padding: 9px 18px; font-size: 13px; font-weight: 500; font-family: inherit;
+    border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer;
+    background: var(--surface); color: var(--text); display: inline-flex; align-items: center;
+    gap: 6px; transition: all 0.15s; white-space: nowrap;
+  }
+  .btn:hover { background: var(--surface2); }
+  .btn:active { transform: scale(0.98); }
+  .btn.primary { background: var(--text); color: #fff; border-color: var(--text); }
+  .btn.primary:hover { background: #333; }
+  .btn.danger { color: var(--red); border-color: #f0c0c8; }
+  .btn.danger:hover { background: var(--red-bg); }
+  .btn.sm { padding: 5px 10px; font-size: 12px; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+  /* Badges */
+  .badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; letter-spacing: 0.02em; }
+  .badge.in { background: var(--green-bg); color: var(--green); }
+  .badge.out { background: var(--red-bg); color: var(--red); }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 600;
+    color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border); background: var(--surface2); white-space: nowrap;
+  }
+  tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text); }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--bg); }
+  tfoot td { padding: 10px 14px; font-weight: 600; background: var(--surface2); border-top: 1px solid var(--border2); font-family: 'DM Mono', monospace; font-size: 12px; }
+  .mono { font-family: 'DM Mono', monospace; }
+
+  /* Filter row */
+  .filter-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+  .filter-row input, .filter-row select {
+    padding: 7px 10px; font-size: 13px; font-family: inherit;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--surface); color: var(--text); outline: none;
+  }
+  .filter-row input:focus, .filter-row select:focus { border-color: var(--text2); }
+
+  /* Notice */
+  .notice {
+    padding: 12px 16px; border-radius: var(--radius-sm); font-size: 13px;
+    margin-bottom: 16px; display: flex; align-items: flex-start; gap: 10px; line-height: 1.5;
+  }
+  .notice.info { background: var(--blue-bg); color: var(--blue); border: 1px solid #b8d4f0; }
+  .notice.success { background: var(--green-bg); color: var(--green); border: 1px solid #a8d8c0; }
+  .notice.warn { background: var(--amber-bg); color: var(--amber); border: 1px solid #f0d89a; }
+  .notice.err { background: var(--red-bg); color: var(--red); border: 1px solid #f0b8c0; }
+
+  /* Stock cards */
+  .stock-summary { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .stock-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px 16px; box-shadow: var(--shadow);
+  }
+  .stock-card-size { font-size: 15px; font-weight: 600; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  .stock-card-row { display: flex; justify-content: space-between; font-size: 12px; padding: 3px 0; color: var(--text2); }
+  .stock-card-row span:last-child { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--text); }
+  .stock-card-net { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+  .stock-card-net-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text3); }
+  .stock-card-net-val { font-size: 18px; font-weight: 600; font-family: 'DM Mono', monospace; }
+
+  .empty { text-align: center; padding: 40px; color: var(--text3); font-size: 13px; }
+  .section-sep { height: 1px; background: var(--border); margin: 24px 0; }
+
+  #form-msg { font-size: 13px; margin-top: 10px; min-height: 20px; }
+  .ledger-footer { font-size: 12px; color: var(--text3); padding: 8px 4px; }
+
+  /* Manage sizes */
+  .size-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .size-chip {
+    display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px;
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 20px;
+    font-size: 12px; font-weight: 500;
+  }
+  .size-chip button { background: none; border: none; cursor: pointer; color: var(--text3); font-size: 14px; line-height: 1; padding: 0; display: flex; align-items: center; }
+  .size-chip button:hover { color: var(--red); }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Header -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="logo-mark">💎</div>
+      <div>
+        <div class="app-title">Diamond Ledger</div>
+        <div class="app-sub">Stock &amp; Transaction Tracker</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <div class="drive-status" onclick="toggleDrivePanel()" title="Google Drive sync settings">
+        <div class="drive-dot" id="drive-dot"></div>
+        <span id="drive-label">Drive: not configured</span>
+        <span style="color:var(--text3);font-size:11px;">⚙</span>
+      </div>
+      <button class="btn sm" onclick="syncDrive()" id="sync-btn" title="Sync now">↻ Sync</button>
+    </div>
+  </div>
+
+  <!-- Drive config panel -->
+  <div class="drive-panel" id="drive-panel">
+    <h3>Google Drive Sync Setup</h3>
+    <p>This app can save your data to a JSON file in your Google Drive so it's accessible from any computer. To enable this, you need a Google Drive API key.</p>
+    <ol>
+      <li>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a> → Create a project</li>
+      <li>Enable the <strong>Google Drive API</strong> for the project</li>
+      <li>Go to <strong>Credentials</strong> → Create <strong>API Key</strong></li>
+      <li>Also create an <strong>OAuth 2.0 Client ID</strong> (Web application type), add <code>http://localhost</code> and your file's location to Authorized Origins</li>
+      <li>Paste the Client ID below and click Connect</li>
+    </ol>
+    <p style="background:var(--amber-bg);color:var(--amber);padding:8px 12px;border-radius:var(--radius-sm);margin-bottom:14px;border:1px solid #f0d89a;">
+      <strong>Simpler alternative:</strong> Use the <strong>Import / Export</strong> buttons to manually back up and restore your data as a JSON file. Save it to your Google Drive folder manually — works perfectly across computers without any API setup.
+    </p>
+    <div class="input-row">
+      <input type="text" id="client-id-input" placeholder="Paste Google OAuth Client ID here..." style="flex:1;padding:8px 11px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;">
+      <button class="btn primary" onclick="initGoogleAuth()">Connect Google Drive</button>
+      <button class="btn" onclick="toggleDrivePanel()">Close</button>
+    </div>
+    <div class="section-sep" style="margin:14px 0;"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn" onclick="exportJSON()">⬇ Export data as JSON</button>
+      <button class="btn" onclick="document.getElementById('import-file').click()">⬆ Import JSON backup</button>
+      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(event)">
+    </div>
+  </div>
+
+  <!-- Notices -->
+  <div id="notice-area"></div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('dashboard')">Dashboard</button>
+    <button class="tab" onclick="switchTab('entry')">New Entry</button>
+    <button class="tab" onclick="switchTab('ledger')">Ledger</button>
+    <button class="tab" onclick="switchTab('stock')">Current Stock</button>
+    <button class="tab" onclick="switchTab('settings')">Settings</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="tab-dashboard">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-label">Net Stock (pieces)</div><div class="stat-val" id="s-net-pcs">0</div><div class="stat-sub">On hand</div></div>
+      <div class="stat-card"><div class="stat-label">Net Stock (carats)</div><div class="stat-val" id="s-net-ct">0.00</div><div class="stat-sub">On hand</div></div>
+      <div class="stat-card"><div class="stat-label">Total IN</div><div class="stat-val positive" id="s-in-pcs">0</div><div class="stat-sub" id="s-in-ct-sub">0.00 ct</div></div>
+      <div class="stat-card"><div class="stat-label">Total OUT</div><div class="stat-val negative" id="s-out-pcs">0</div><div class="stat-sub" id="s-out-ct-sub">0.00 ct</div></div>
+      <div class="stat-card"><div class="stat-label">Total Entries</div><div class="stat-val" id="s-entries">0</div><div class="stat-sub" id="s-last">—</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Recent transactions</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Type</th><th>Size / Grade</th><th>Pieces</th><th>Carats</th><th>Ref</th><th>Notes</th></tr></thead>
+          <tbody id="recent-tbody"><tr><td colspan="7" class="empty">No transactions yet</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEW ENTRY -->
+  <div id="tab-entry" style="display:none">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Add new entry</span></div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="field"><label>Date *</label><input type="date" id="f-date"></div>
+          <div class="field"><label>Type *</label>
+            <select id="f-type"><option value="IN">IN (Received)</option><option value="OUT">OUT (Dispatched)</option></select>
+          </div>
+          <div class="field">
+            <label>Size / Grade</label>
+            <input type="text" id="f-size" list="size-list" placeholder="Type or select..." autocomplete="off">
+            <datalist id="size-list"></datalist>
+          </div>
+          <div class="field"><label>No. of Pieces *</label><input type="number" id="f-pieces" placeholder="0" min="0" step="1"></div>
+          <div class="field"><label>Carat Weight *</label><input type="number" id="f-carats" placeholder="0.00" step="0.01" min="0"></div>
+          <div class="field"><label>Invoice / Ref No.</label><input type="text" id="f-ref" placeholder="Optional"></div>
+          <div class="field" style="grid-column: span 2;"><label>Notes</label><input type="text" id="f-notes" placeholder="Optional remarks"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn primary" onclick="addEntry()" id="save-btn">✓ Save Entry</button>
+          <button class="btn" onclick="clearForm()">Clear</button>
+        </div>
+        <div id="form-msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEDGER -->
+  <div id="tab-ledger" style="display:none">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Transaction ledger</span>
+        <div class="btn-row">
+          <button class="btn sm" onclick="exportCSV()">⬇ CSV</button>
+          <button class="btn sm" onclick="exportReport()">⬇ HTML Report</button>
+        </div>
+      </div>
+      <div class="card-body" style="padding-bottom:0;">
+        <div class="filter-row">
+          <select id="filter-type" onchange="renderLedger()">
+            <option value="">All types</option>
+            <option value="IN">IN only</option>
+            <option value="OUT">OUT only</option>
+          </select>
+          <select id="filter-size" onchange="renderLedger()">
+            <option value="">All sizes</option>
+          </select>
+          <input type="date" id="filter-from" onchange="renderLedger()" title="From date">
+          <span style="font-size:12px;color:var(--text3);">to</span>
+          <input type="date" id="filter-to" onchange="renderLedger()" title="To date">
+          <button class="btn sm" onclick="clearFilters()">Clear</button>
+          <button class="btn sm" onclick="exportFilteredCSV()">⬇ Export filtered CSV</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Date</th><th>Type</th><th>Size / Grade</th><th>Pieces</th><th>Carats</th><th>Ref</th><th>Notes</th><th></th></tr></thead>
+          <tbody id="ledger-tbody"><tr><td colspan="9" class="empty">No entries yet</td></tr></tbody>
+          <tfoot id="ledger-tfoot"></tfoot>
+        </table>
+      </div>
+      <div class="ledger-footer" id="ledger-footer"></div>
+    </div>
+  </div>
+
+  <!-- STOCK -->
+  <div id="tab-stock" style="display:none">
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">
+        <span class="card-title">Current stock summary</span>
+        <div class="btn-row">
+          <button class="btn sm" onclick="exportStockCSV()">⬇ Export Stock CSV</button>
+          <button class="btn sm" onclick="exportReport('stock')">⬇ HTML Report</button>
+        </div>
+      </div>
+      <div class="card-body" style="padding-bottom:4px;">
+        <div id="stock-cards"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Stock table — all sizes</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Size / Grade</th><th>IN (pcs)</th><th>OUT (pcs)</th><th>Net (pcs)</th><th>IN (ct)</th><th>OUT (ct)</th><th>Net (ct)</th><th>Status</th></tr></thead>
+          <tbody id="stock-tbody"></tbody>
+          <tfoot id="stock-tfoot"></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="tab-settings" style="display:none">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Manage size / grade list</span></div>
+      <div class="card-body">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Add or remove the size/grade options that appear in the entry form dropdown. These are saved automatically.</p>
+        <div class="btn-row" style="margin-bottom:12px;">
+          <input type="text" id="new-size-input" placeholder="Type new size/grade..." style="padding:8px 11px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;width:220px;"
+            onkeydown="if(event.key==='Enter')addSize()">
+          <button class="btn primary" onclick="addSize()">+ Add</button>
+        </div>
+        <div class="size-chips" id="size-chips"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Data management</span></div>
+      <div class="card-body">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Export your full data as JSON (for backup or transfer to another device), or import a previously exported backup.</p>
+        <div class="btn-row">
+          <button class="btn" onclick="exportJSON()">⬇ Export full backup (JSON)</button>
+          <button class="btn" onclick="document.getElementById('import-file2').click()">⬆ Import backup (JSON)</button>
+          <input type="file" id="import-file2" accept=".json" style="display:none" onchange="importJSON(event)">
+        </div>
+        <div class="section-sep"></div>
+        <p style="font-size:13px;color:var(--red);margin-bottom:10px;">Danger zone — this cannot be undone.</p>
+        <button class="btn danger" onclick="clearAllData()">🗑 Delete all data</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /shell -->
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const LS = {
+  get: k => { try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } },
+  set: (k,v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+};
+
+let entries = LS.get('dl_entries') || [];
+let sizes   = LS.get('dl_sizes')   || [];
+let driveConfig = LS.get('dl_drive') || { clientId: '', token: '' };
+let gapi_loaded = false;
+
+function save() {
+  LS.set('dl_entries', entries);
+  LS.set('dl_sizes', sizes);
+  LS.set('dl_drive', driveConfig);
+}
+
+// ── Utils ──────────────────────────────────────────────────────────────────
+const fmt = n => parseFloat(n||0).toFixed(2);
+const fmtDate = d => { if(!d) return '—'; const p=d.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; };
+const today = () => new Date().toISOString().slice(0,10);
+
+function showNotice(msg, type='info', duration=5000) {
+  const el = document.getElementById('notice-area');
+  el.innerHTML = `<div class="notice ${type}">${msg}</div>`;
+  if(duration) setTimeout(() => el.innerHTML='', duration);
+}
+
+// ── Tabs ───────────────────────────────────────────────────────────────────
+function switchTab(t) {
+  ['dashboard','entry','ledger','stock','settings'].forEach((id,i) => {
+    document.getElementById('tab-'+id).style.display = id===t ? 'block' : 'none';
+    document.querySelectorAll('.tab')[i].classList.toggle('active', id===t);
+  });
+  if(t==='dashboard') renderDashboard();
+  if(t==='ledger')    { populateSizeFilter(); renderLedger(); }
+  if(t==='stock')     renderStock();
+  if(t==='settings')  renderSizeChips();
+}
+
+// ── Size / Grade management ────────────────────────────────────────────────
+function populateSizeDatalist() {
+  const dl = document.getElementById('size-list');
+  dl.innerHTML = sizes.map(s => `<option value="${s}">`).join('');
+}
+
+function populateSizeFilter() {
+  const sel = document.getElementById('filter-size');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All sizes</option>' +
+    sizes.map(s => `<option value="${s}" ${s===cur?'selected':''}>${s}</option>`).join('');
+  // also add sizes from entries not yet in list
+  const fromEntries = [...new Set(entries.map(e=>e.size).filter(Boolean))];
+  fromEntries.forEach(s => {
+    if(!sizes.includes(s)) {
+      const o = document.createElement('option');
+      o.value = s; o.textContent = s;
+      if(s===cur) o.selected=true;
+      sel.appendChild(o);
+    }
+  });
+}
+
+function addSize() {
+  const input = document.getElementById('new-size-input');
+  const val = input.value.trim();
+  if(!val) return;
+  if(!sizes.includes(val)) { sizes.push(val); save(); populateSizeDatalist(); renderSizeChips(); }
+  input.value = '';
+}
+
+function removeSize(s) {
+  sizes = sizes.filter(x => x!==s); save(); populateSizeDatalist(); renderSizeChips();
+}
+
+function renderSizeChips() {
+  const container = document.getElementById('size-chips');
+  if(!sizes.length) { container.innerHTML = '<span style="font-size:13px;color:var(--text3);">No sizes added yet.</span>'; return; }
+  container.innerHTML = sizes.map(s => `
+    <div class="size-chip">${s}
+      <button onclick="removeSize('${s.replace(/'/g,"\\'")}')">×</button>
+    </div>`).join('');
+}
+
+// Auto-save size when a new one is typed in entry form
+function maybeSaveSize(val) {
+  val = val.trim();
+  if(val && !sizes.includes(val)) { sizes.push(val); save(); populateSizeDatalist(); }
+}
+
+// ── Entry CRUD ─────────────────────────────────────────────────────────────
+function addEntry() {
+  const date   = document.getElementById('f-date').value;
+  const type   = document.getElementById('f-type').value;
+  const size   = document.getElementById('f-size').value.trim();
+  const pieces = parseFloat(document.getElementById('f-pieces').value);
+  const carats = parseFloat(document.getElementById('f-carats').value);
+  const ref    = document.getElementById('f-ref').value.trim();
+  const notes  = document.getElementById('f-notes').value.trim();
+  const msg    = document.getElementById('form-msg');
+
+  if(!date || isNaN(pieces)||pieces<=0 || isNaN(carats)||carats<=0) {
+    msg.style.color='var(--red)'; msg.textContent='Please fill in Date, Pieces and Carat Weight.'; return;
+  }
+  maybeSaveSize(size);
+  entries.unshift({ id: Date.now(), date, type, size, pieces, carats, ref, notes });
+  save(); autoSyncDrive();
+  msg.style.color='var(--green)'; msg.textContent='Entry saved!';
+  setTimeout(()=>msg.textContent='', 3000);
+  clearForm(true);
+  renderDashboard();
+}
+
+function clearForm(keepMsg) {
+  ['f-size','f-pieces','f-carats','f-ref','f-notes'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('f-date').value = today();
+  document.getElementById('f-type').value = 'IN';
+  if(!keepMsg) document.getElementById('form-msg').textContent='';
+}
+
+function deleteEntry(id) {
+  if(!confirm('Delete this entry? This cannot be undone.')) return;
+  entries = entries.filter(e=>e.id!==id); save(); autoSyncDrive();
+  renderDashboard(); renderLedger(); renderStock();
+}
+
+// ── Dashboard ──────────────────────────────────────────────────────────────
+function renderDashboard() {
+  const inP  = entries.filter(e=>e.type==='IN').reduce((a,e)=>a+e.pieces,0);
+  const outP = entries.filter(e=>e.type==='OUT').reduce((a,e)=>a+e.pieces,0);
+  const inC  = entries.filter(e=>e.type==='IN').reduce((a,e)=>a+e.carats,0);
+  const outC = entries.filter(e=>e.type==='OUT').reduce((a,e)=>a+e.carats,0);
+  const net  = inP - outP;
+  document.getElementById('s-net-pcs').textContent = net;
+  document.getElementById('s-net-pcs').className = 'stat-val ' + (net>0?'positive':net<0?'negative':'');
+  document.getElementById('s-net-ct').textContent = fmt(inC-outC);
+  document.getElementById('s-net-ct').className   = 'stat-val ' + ((inC-outC)>0?'positive':(inC-outC)<0?'negative':'');
+  document.getElementById('s-in-pcs').textContent  = inP;
+  document.getElementById('s-out-pcs').textContent = outP;
+  document.getElementById('s-in-ct-sub').textContent  = fmt(inC)+' ct';
+  document.getElementById('s-out-ct-sub').textContent = fmt(outC)+' ct';
+  document.getElementById('s-entries').textContent = entries.length;
+  document.getElementById('s-last').textContent = entries.length ? 'Last: '+fmtDate(entries[0].date) : '—';
+  const tbody = document.getElementById('recent-tbody');
+  const r = entries.slice(0,10);
+  tbody.innerHTML = r.length
+    ? r.map(e=>`<tr>
+        <td>${fmtDate(e.date)}</td>
+        <td><span class="badge ${e.type.toLowerCase()}">${e.type}</span></td>
+        <td>${e.size||'—'}</td>
+        <td class="mono">${e.pieces}</td>
+        <td class="mono">${fmt(e.carats)}</td>
+        <td>${e.ref||'—'}</td>
+        <td>${e.notes||'—'}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="7" class="empty">No transactions yet</td></tr>';
+}
+
+// ── Ledger ─────────────────────────────────────────────────────────────────
+function getFiltered() {
+  const type = document.getElementById('filter-type').value;
+  const size = document.getElementById('filter-size').value;
+  const from = document.getElementById('filter-from').value;
+  const to   = document.getElementById('filter-to').value;
+  return entries.filter(e => {
+    if(type && e.type!==type) return false;
+    if(size && e.size!==size) return false;
+    if(from && e.date<from)   return false;
+    if(to   && e.date>to)     return false;
+    return true;
+  });
+}
+
+function renderLedger() {
+  const filtered = getFiltered();
+  const tbody = document.getElementById('ledger-tbody');
+  const tfoot = document.getElementById('ledger-tfoot');
+  const footer= document.getElementById('ledger-footer');
+  if(!filtered.length) {
+    tbody.innerHTML='<tr><td colspan="9" class="empty">No matching entries</td></tr>';
+    tfoot.innerHTML=''; footer.textContent=''; return;
+  }
+  tbody.innerHTML = filtered.map((e,i) => `<tr>
+    <td class="mono" style="color:var(--text3)">${filtered.length-i}</td>
+    <td>${fmtDate(e.date)}</td>
+    <td><span class="badge ${e.type.toLowerCase()}">${e.type}</span></td>
+    <td>${e.size||'—'}</td>
+    <td class="mono">${e.pieces}</td>
+    <td class="mono">${fmt(e.carats)}</td>
+    <td>${e.ref||'—'}</td>
+    <td>${e.notes||'—'}</td>
+    <td><button class="btn sm danger" onclick="deleteEntry(${e.id})" title="Delete">✕</button></td>
+  </tr>`).join('');
+  const totIN_P  = filtered.filter(e=>e.type==='IN').reduce((a,e)=>a+e.pieces,0);
+  const totOUT_P = filtered.filter(e=>e.type==='OUT').reduce((a,e)=>a+e.pieces,0);
+  const totIN_C  = filtered.filter(e=>e.type==='IN').reduce((a,e)=>a+e.carats,0);
+  const totOUT_C = filtered.filter(e=>e.type==='OUT').reduce((a,e)=>a+e.carats,0);
+  tfoot.innerHTML = `<tr>
+    <td colspan="2">Totals (${filtered.length} entries)</td>
+    <td></td><td></td>
+    <td>IN: ${totIN_P} / OUT: ${totOUT_P}</td>
+    <td>IN: ${fmt(totIN_C)} / OUT: ${fmt(totOUT_C)}</td>
+    <td colspan="3">Net: ${totIN_P-totOUT_P} pcs · ${fmt(totIN_C-totOUT_C)} ct</td>
+  </tr>`;
+  footer.textContent = '';
+}
+
+function clearFilters() {
+  ['filter-type','filter-size','filter-from','filter-to'].forEach(id => document.getElementById(id).value='');
+  renderLedger();
+}
+
+// ── Stock ──────────────────────────────────────────────────────────────────
+function getStockMap() {
+  const map = {};
+  entries.forEach(e => {
+    const k = e.size || 'Unspecified';
+    if(!map[k]) map[k] = {size:k,inP:0,outP:0,inC:0,outC:0};
+    if(e.type==='IN')  { map[k].inP+=e.pieces;  map[k].inC+=e.carats; }
+    else               { map[k].outP+=e.pieces; map[k].outC+=e.carats; }
+  });
+  return Object.values(map);
+}
+
+function renderStock() {
+  const rows = getStockMap();
+  const cardsEl = document.getElementById('stock-cards');
+  const tbody   = document.getElementById('stock-tbody');
+  const tfoot   = document.getElementById('stock-tfoot');
+
+  if(!rows.length) {
+    cardsEl.innerHTML='<p class="empty">No data yet. Add entries to see stock.</p>';
+    tbody.innerHTML='<tr><td colspan="8" class="empty">No data yet</td></tr>';
+    tfoot.innerHTML=''; return;
+  }
+
+  // Cards
+  cardsEl.innerHTML = `<div class="stock-summary">${rows.map(r => {
+    const np=r.inP-r.outP, nc=r.inC-r.outC;
+    const col = np>0?'var(--green)':np<0?'var(--red)':'var(--text3)';
+    return `<div class="stock-card">
+      <div class="stock-card-size">💎 ${r.size}</div>
+      <div class="stock-card-row"><span>IN pieces</span><span>${r.inP}</span></div>
+      <div class="stock-card-row"><span>OUT pieces</span><span>${r.outP}</span></div>
+      <div class="stock-card-row"><span>IN carats</span><span>${fmt(r.inC)}</span></div>
+      <div class="stock-card-row"><span>OUT carats</span><span>${fmt(r.outC)}</span></div>
+      <div class="stock-card-net">
+        <div>
+          <div class="stock-card-net-label">Net on hand</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">${fmt(nc)} ct</div>
+        </div>
+        <div class="stock-card-net-val" style="color:${col}">${np} pcs</div>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+
+  // Table
+  tbody.innerHTML = rows.map(r => {
+    const np=r.inP-r.outP, nc=r.inC-r.outC;
+    const cl = np>0?'positive':np<0?'negative':'';
+    return `<tr>
+      <td>${r.size}</td>
+      <td class="mono">${r.inP}</td><td class="mono">${r.outP}</td>
+      <td class="mono ${cl}">${np}</td>
+      <td class="mono">${fmt(r.inC)}</td><td class="mono">${fmt(r.outC)}</td>
+      <td class="mono ${cl}">${fmt(nc)}</td>
+      <td><span class="badge ${np>0?'in':'out'}">${np>0?'In Stock':'Deficit'}</span></td>
+    </tr>`;
+  }).join('');
+
+  const tIP=rows.reduce((a,r)=>a+r.inP,0), tOP=rows.reduce((a,r)=>a+r.outP,0);
+  const tIC=rows.reduce((a,r)=>a+r.inC,0), tOC=rows.reduce((a,r)=>a+r.outC,0);
+  tfoot.innerHTML=`<tr>
+    <td>TOTAL</td>
+    <td>${tIP}</td><td>${tOP}</td><td class="${tIP-tOP>0?'positive':'negative'}">${tIP-tOP}</td>
+    <td>${fmt(tIC)}</td><td>${fmt(tOC)}</td><td>${fmt(tIC-tOC)}</td><td></td>
+  </tr>`;
+}
+
+// ── Export ─────────────────────────────────────────────────────────────────
+function toCSV(rows, headers) {
+  return [headers, ...rows].map(r => r.map(c => `"${String(c??'').replace(/"/g,'""')}"`).join(',')).join('\n');
+}
+function dlFile(content, filename, type) {
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([content],{type}));
+  a.download=filename; a.click();
+}
+
+function exportCSV() {
+  const h=['Date','Type','Size/Grade','Pieces','Carats','Ref','Notes'];
+  const rows=entries.map(e=>[fmtDate(e.date),e.type,e.size||'',e.pieces,fmt(e.carats),e.ref||'',e.notes||'']);
+  dlFile(toCSV(rows,h),'diamond_ledger_full.csv','text/csv');
+}
+
+function exportFilteredCSV() {
+  const filtered = getFiltered();
+  const from = document.getElementById('filter-from').value;
+  const to   = document.getElementById('filter-to').value;
+  const suffix = (from||to) ? `_${from||'start'}_to_${to||'end'}` : '_filtered';
+  const h=['Date','Type','Size/Grade','Pieces','Carats','Ref','Notes'];
+  const rows=filtered.map(e=>[fmtDate(e.date),e.type,e.size||'',e.pieces,fmt(e.carats),e.ref||'',e.notes||'']);
+  dlFile(toCSV(rows,h),`diamond_ledger${suffix}.csv`,'text/csv');
+}
+
+function exportStockCSV() {
+  const rows = getStockMap();
+  const h=['Size/Grade','IN (pcs)','OUT (pcs)','Net (pcs)','IN (ct)','OUT (ct)','Net (ct)'];
+  const data = rows.map(r=>[r.size,r.inP,r.outP,r.inP-r.outP,fmt(r.inC),fmt(r.outC),fmt(r.inC-r.outC)]);
+  dlFile(toCSV(data,h),'diamond_stock.csv','text/csv');
+}
+
+function exportJSON() {
+  const data = { entries, sizes, exportedAt: new Date().toISOString() };
+  dlFile(JSON.stringify(data,null,2),'diamond_ledger_backup.json','application/json');
+}
+
+function importJSON(event) {
+  const file = event.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if(data.entries) {
+        if(!confirm(`Import ${data.entries.length} entries? This will REPLACE your current data.`)) return;
+        entries = data.entries;
+        if(data.sizes) sizes = data.sizes;
+        save(); populateSizeDatalist(); renderDashboard(); renderSizeChips();
+        showNotice('Data imported successfully!','success');
+      } else { showNotice('Invalid backup file.','err'); }
+    } catch(e) { showNotice('Could not read file. Make sure it is a valid JSON backup.','err'); }
+  };
+  reader.readAsText(file);
+  event.target.value='';
+}
+
+function exportReport(mode) {
+  const d = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+  const src = mode==='stock' ? entries : getFiltered();
+  const inP=entries.filter(e=>e.type==='IN').reduce((a,e)=>a+e.pieces,0);
+  const outP=entries.filter(e=>e.type==='OUT').reduce((a,e)=>a+e.pieces,0);
+  const inC=entries.filter(e=>e.type==='IN').reduce((a,e)=>a+e.carats,0);
+  const outC=entries.filter(e=>e.type==='OUT').reduce((a,e)=>a+e.carats,0);
+  const sr=getStockMap();
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Diamond Report — ${d}</title>
+<style>body{font-family:Arial,sans-serif;color:#1a1a1a;padding:40px;max-width:960px;margin:0 auto;font-size:13px;}
+h1{font-size:22px;font-weight:700;margin-bottom:4px;}
+.sub{color:#888;font-size:12px;margin-bottom:28px;}
+.sumrow{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:28px;}
+.sbox{background:#f5f5ef;border-radius:8px;padding:12px 16px;min-width:120px;}
+.sbox .l{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+.sbox .v{font-size:20px;font-weight:700;font-family:monospace;}
+h2{font-size:14px;font-weight:700;margin:28px 0 10px;padding-bottom:6px;border-bottom:2px solid #1a1a1a;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{text-align:left;padding:7px 10px;background:#f0f0ea;font-size:10px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #ddd;}
+td{padding:7px 10px;border-bottom:1px solid #eee;font-family:monospace;}
+td:first-child{font-family:Arial,sans-serif;}
+tfoot td{font-weight:700;background:#f5f5ef;border-top:2px solid #ccc;}
+.in{color:#2d6a4f;font-weight:600;}.out{color:#9b2335;font-weight:600;}
+.footer{margin-top:32px;color:#aaa;font-size:11px;border-top:1px solid #eee;padding-top:10px;}
+@media print{.no-print{display:none;}}</style></head><body>
+<h1>💎 Diamond Ledger Report</h1>
+<div class="sub">Generated: ${d} &nbsp;·&nbsp; Total entries: ${entries.length}</div>
+<div class="sumrow">
+<div class="sbox"><div class="l">IN pcs</div><div class="v">${inP}</div></div>
+<div class="sbox"><div class="l">OUT pcs</div><div class="v">${outP}</div></div>
+<div class="sbox"><div class="l">Net pcs</div><div class="v">${inP-outP}</div></div>
+<div class="sbox"><div class="l">IN ct</div><div class="v">${fmt(inC)}</div></div>
+<div class="sbox"><div class="l">OUT ct</div><div class="v">${fmt(outC)}</div></div>
+<div class="sbox"><div class="l">Net ct</div><div class="v">${fmt(inC-outC)}</div></div>
+</div>
+<h2>Current stock by size / grade</h2>
+<table><thead><tr><th>Size/Grade</th><th>IN pcs</th><th>OUT pcs</th><th>Net pcs</th><th>IN ct</th><th>OUT ct</th><th>Net ct</th></tr></thead>
+<tbody>${sr.map(r=>{const np=r.inP-r.outP,nc=r.inC-r.outC;return`<tr><td>${r.size}</td><td>${r.inP}</td><td>${r.outP}</td><td>${np}</td><td>${fmt(r.inC)}</td><td>${fmt(r.outC)}</td><td>${fmt(nc)}</td></tr>`;}).join('')}</tbody>
+<tfoot><tr><td>TOTAL</td><td>${sr.reduce((a,r)=>a+r.inP,0)}</td><td>${sr.reduce((a,r)=>a+r.outP,0)}</td><td>${sr.reduce((a,r)=>a+r.inP-r.outP,0)}</td><td>${fmt(sr.reduce((a,r)=>a+r.inC,0))}</td><td>${fmt(sr.reduce((a,r)=>a+r.outC,0))}</td><td>${fmt(sr.reduce((a,r)=>a+r.inC-r.outC,0))}</td></tr></tfoot>
+</table>
+<h2>Transaction ledger</h2>
+<table><thead><tr><th>#</th><th>Date</th><th>Type</th><th>Size/Grade</th><th>Pieces</th><th>Carats</th><th>Ref</th><th>Notes</th></tr></thead>
+<tbody>${src.map((e,i)=>`<tr><td>${src.length-i}</td><td>${fmtDate(e.date)}</td><td class="${e.type.toLowerCase()}">${e.type}</td><td>${e.size||'—'}</td><td>${e.pieces}</td><td>${fmt(e.carats)}</td><td>${e.ref||'—'}</td><td>${e.notes||'—'}</td></tr>`).join('')}</tbody>
+</table>
+<div class="footer">Diamond Ledger &nbsp;·&nbsp; ${d}</div>
+<br><button class="no-print" onclick="window.print()" style="padding:8px 20px;font-size:13px;cursor:pointer;font-family:Arial;">🖨 Print / Save as PDF</button>
+</body></html>`;
+  dlFile(html,'diamond_report.html','text/html');
+}
+
+// ── Google Drive (OAuth2 GAPI) ─────────────────────────────────────────────
+const DRIVE_FILE = 'diamond_ledger_data.json';
+const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+
+function setDriveStatus(status, label) {
+  const dot = document.getElementById('drive-dot');
+  const lbl = document.getElementById('drive-label');
+  dot.className = 'drive-dot ' + status;
+  lbl.textContent = 'Drive: ' + label;
+}
+
+function toggleDrivePanel() {
+  const p = document.getElementById('drive-panel');
+  p.classList.toggle('open');
+  if(driveConfig.clientId) document.getElementById('client-id-input').value = driveConfig.clientId;
+}
+
+function initGoogleAuth() {
+  const clientId = document.getElementById('client-id-input').value.trim();
+  if(!clientId) { showNotice('Please enter your Google OAuth Client ID.','warn'); return; }
+  driveConfig.clientId = clientId; save();
+  const script = document.createElement('script');
+  script.src = 'https://accounts.google.com/gsi/client';
+  script.onload = () => startGoogleAuth();
+  document.head.appendChild(script);
+}
+
+function startGoogleAuth() {
+  setDriveStatus('busy','Authenticating...');
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: driveConfig.clientId,
+    scope: SCOPES,
+    callback: (resp) => {
+      if(resp.access_token) {
+        driveConfig.token = resp.access_token; save();
+        setDriveStatus('ok','Connected');
+        showNotice('Google Drive connected! Click Sync to load your data.','success');
+        document.getElementById('drive-panel').classList.remove('open');
+      } else { setDriveStatus('err','Auth failed'); showNotice('Google auth failed. Check your Client ID.','err'); }
+    }
+  });
+  client.requestAccessToken();
+}
+
+async function syncDrive() {
+  if(!driveConfig.token) { showNotice('Google Drive not connected. Click Drive status to set up.','warn'); return; }
+  setDriveStatus('busy','Syncing...');
+  try {
+    // Find file
+    const search = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${DRIVE_FILE}'+and+trashed=false&fields=files(id,name)`,
+      {headers:{'Authorization':'Bearer '+driveConfig.token}});
+    if(search.status===401){setDriveStatus('err','Token expired');showNotice('Drive session expired. Please reconnect.','warn',0);return;}
+    const sdata = await search.json();
+    const files = sdata.files||[];
+
+    if(files.length===0) {
+      // Create new file
+      await uploadDriveFile(null);
+    } else {
+      const fileId = files[0].id;
+      // Download and merge
+      const dlRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+        {headers:{'Authorization':'Bearer '+driveConfig.token}});
+      const text = await dlRes.text();
+      try {
+        const remote = JSON.parse(text);
+        const remoteEntries = Array.isArray(remote) ? remote : (remote.entries||[]);
+        const remoteSizes   = remote.sizes||[];
+        // Merge: combine by id, remote wins for conflicts
+        const localMap = {};
+        entries.forEach(e=>localMap[e.id]=e);
+        remoteEntries.forEach(e=>localMap[e.id]=e);
+        entries = Object.values(localMap).sort((a,b)=>b.date.localeCompare(a.date)||(b.id-a.id));
+        const allSizes = [...new Set([...sizes,...remoteSizes])];
+        sizes = allSizes;
+        save(); populateSizeDatalist();
+      } catch(e){/* use local */}
+      // Upload merged
+      await uploadDriveFile(fileId);
+    }
+    setDriveStatus('ok','Synced');
+    renderDashboard(); renderLedger(); renderStock(); renderSizeChips();
+    showNotice('Synced with Google Drive!','success');
+  } catch(err) {
+    setDriveStatus('err','Error'); showNotice('Drive sync failed: '+err.message,'err');
+  }
+}
+
+async function uploadDriveFile(fileId) {
+  const content = JSON.stringify({entries,sizes,savedAt:new Date().toISOString()},null,2);
+  const blob = new Blob([content],{type:'application/json'});
+  const meta = JSON.stringify({name:DRIVE_FILE,mimeType:'application/json'});
+  const form = new FormData();
+  form.append('metadata',new Blob([meta],{type:'application/json'}));
+  form.append('file',blob);
+  const url = fileId
+    ? `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`
+    : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+  await fetch(url,{method:fileId?'PATCH':'POST',headers:{'Authorization':'Bearer '+driveConfig.token},body:form});
+}
+
+function autoSyncDrive() {
+  if(driveConfig.token) syncDrive();
+}
+
+function clearAllData() {
+  if(!confirm('Delete ALL entries and sizes? This cannot be undone.')) return;
+  entries=[]; sizes=[]; save(); populateSizeDatalist();
+  renderDashboard(); renderSizeChips();
+  showNotice('All data cleared.','warn');
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+document.getElementById('f-date').value = today();
+populateSizeDatalist();
+renderDashboard();
+if(driveConfig.clientId) setDriveStatus('','Configured (not synced)');
+</script>
+</body>
+</html>
