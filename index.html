@@ -212,10 +212,63 @@
   }
   .size-chip button { background: none; border: none; cursor: pointer; color: var(--text3); font-size: 14px; line-height: 1; padding: 0; display: flex; align-items: center; }
   .size-chip button:hover { color: var(--red); }
+
+  /* Password screen */
+  #lock-screen {
+    position: fixed; inset: 0; background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9999;
+  }
+  .lock-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 40px 48px; box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    display: flex; flex-direction: column; align-items: center; gap: 18px;
+    width: 100%; max-width: 360px; text-align: center;
+  }
+  .lock-logo { font-size: 42px; }
+  .lock-title { font-size: 22px; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
+  .lock-sub { font-size: 13px; color: var(--text3); margin-top: -10px; }
+  .lock-input-wrap { width: 100%; position: relative; }
+  .lock-input {
+    width: 100%; padding: 11px 42px 11px 14px; font-size: 15px; font-family: inherit;
+    border: 1px solid var(--border); border-radius: var(--radius); outline: none;
+    background: var(--surface); color: var(--text);
+    transition: border-color 0.15s; box-sizing: border-box;
+  }
+  .lock-input:focus { border-color: var(--blue); }
+  .lock-input.shake { animation: shake 0.35s ease; border-color: var(--red); }
+  .lock-toggle {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer; color: var(--text3); font-size: 15px; padding: 0;
+  }
+  .lock-btn {
+    width: 100%; padding: 11px; font-size: 15px; font-weight: 600; font-family: inherit;
+    background: var(--text); color: #fff; border: none; border-radius: var(--radius); cursor: pointer;
+  }
+  .lock-btn:hover { opacity: 0.85; }
+  .lock-error { font-size: 13px; color: var(--red); min-height: 16px; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-7px)} 75%{transform:translateX(7px)} }
+
 </style>
 </head>
 <body>
-<div class="shell">
+
+<div id="lock-screen">
+  <div class="lock-card">
+    <div class="lock-logo">💎</div>
+    <div class="lock-title">Diamond Ledger</div>
+    <div class="lock-sub">Enter password to continue</div>
+    <div class="lock-input-wrap">
+      <input class="lock-input" type="password" id="lock-input" placeholder="Password"
+        onkeydown="if(event.key==='Enter')checkPassword()">
+      <button class="lock-toggle" onclick="togglePwd()" title="Show/hide">👁</button>
+    </div>
+    <div class="lock-error" id="lock-error"></div>
+    <button class="lock-btn" onclick="checkPassword()">Unlock</button>
+  </div>
+</div>
+
+<div class="shell" id="main-app" style="display:none;">
 
   <!-- Header -->
   <div class="topbar">
@@ -920,10 +973,54 @@ function clearAllData() {
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
-document.getElementById('f-date').value = today();
-populateSizeDatalist();
-renderDashboard();
-if(driveConfig.clientId) setDriveStatus('','Configured (not synced)');
+
+// ── Password ───────────────────────────────────────────────────────────────
+const PWD_HASH = 'a44791d254ba49bb687c58be391a5e27bf699426ff62a616d22e0e699c7be1cd';
+
+async function sha256(msg) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function checkPassword() {
+  const val = document.getElementById('lock-input').value;
+  const hash = await sha256(val);
+  if(hash === PWD_HASH) {
+    sessionStorage.setItem('dl_auth','1');
+    document.getElementById('lock-screen').style.display='none';
+    document.getElementById('main-app').style.display='block';
+    initApp();
+  } else {
+    const inp = document.getElementById('lock-input');
+    inp.classList.remove('shake');
+    void inp.offsetWidth;
+    inp.classList.add('shake');
+    document.getElementById('lock-error').textContent='Incorrect password. Please try again.';
+    inp.value='';
+    setTimeout(()=>inp.classList.remove('shake'),400);
+  }
+}
+
+function togglePwd() {
+  const inp = document.getElementById('lock-input');
+  inp.type = inp.type==='password' ? 'text' : 'password';
+}
+
+// Check if already authenticated this session
+if(sessionStorage.getItem('dl_auth')==='1') {
+  document.getElementById('lock-screen').style.display='none';
+  document.getElementById('main-app').style.display='block';
+}
+
+function initApp() {
+  document.getElementById('f-date').value = today();
+  populateSizeDatalist();
+  renderDashboard();
+  if(driveConfig.clientId) setDriveStatus('','Configured (not synced)');
+}
+
+// Auto-init if already unlocked
+if(sessionStorage.getItem('dl_auth')==='1') initApp();
 </script>
 </body>
 </html>
