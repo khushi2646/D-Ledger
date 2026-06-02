@@ -628,10 +628,38 @@ function renderTodayEntries() {
   </tr>`).join('');
 }
 
+let syncTimer = null;
+
 function deleteEntry(id) {
-  if(!confirm('Delete this entry? This cannot be undone.')) return;
-  entries = entries.filter(e=>e.id!==id); save(); autoSyncDrive();
-  renderDashboard(); renderLedger(); renderStock();
+  if(!confirm('Delete this entry?')) return;
+  entries = entries.filter(e=>e.id!==id);
+  save();
+  renderDashboard(); renderLedger(); renderStock(); renderTodayEntries();
+  // Debounce sync — wait 3 seconds after LAST deletion before syncing
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => {
+    if(driveConfig.token) uploadOnlyToDrive();
+  }, 3000);
+}
+
+// Upload only — does NOT pull from Drive, just pushes current local data up
+async function uploadOnlyToDrive() {
+  if(!driveConfig.token) return;
+  setSyncStatus('busy', 'Saving...');
+  try {
+    const search = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=name='${DRIVE_FILE}'+and+trashed=false&fields=files(id)`,
+      {headers:{'Authorization':'Bearer '+driveConfig.token}}
+    );
+    if(search.status===401){setSyncStatus('err','Token expired');return;}
+    const sdata = await search.json();
+    const files = sdata.files||[];
+    const fileId = files.length ? files[0].id : null;
+    await uploadDriveFile(fileId);
+    setSyncStatus('ok','Saved');
+  } catch(err) {
+    setSyncStatus('err','Save failed');
+  }
 }
 
 // ── Dashboard ──────────────────────────────────────────────────────────────
@@ -836,7 +864,13 @@ function importJSON(event) {
         entries = data.entries;
         if(data.sizes) sizes = data.sizes;
         save(); populateSizeDatalist(); renderDashboard(); renderSizeChips();
-        showNotice('Data imported successfully!','success');
+        showNotice('Data imported successfully! Pushing to Drive...','success');
+        // Upload local data to Drive immediately — do NOT pull from Drive
+        if(driveConfig.token) {
+          uploadOnlyToDrive().then(() => {
+            showNotice('Data imported and synced to Drive successfully!','success');
+          });
+        }
       } else { showNotice('Invalid backup file.','err'); }
     } catch(e) { showNotice('Could not read file. Make sure it is a valid JSON backup.','err'); }
   };
@@ -996,7 +1030,7 @@ async function uploadDriveFile(fileId) {
 }
 
 function autoSyncDrive() {
-  if(driveConfig.token) syncDrive();
+  if(driveConfig.token) uploadOnlyToDrive();
 }
 
 function clearAllData() {
