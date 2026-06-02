@@ -360,7 +360,7 @@
           </div>
           <div class="field">
             <label>Size / Grade</label>
-            <input type="text" id="f-size" list="size-list" placeholder="Type or select..." autocomplete="off">
+            <input type="text" id="f-size" list="size-list" placeholder="Type or select..." autocomplete="off" oninput="updateSizePreview()">
             <datalist id="size-list"></datalist>
           </div>
           <div class="field"><label>No. of Pieces *</label><input type="number" id="f-pieces" placeholder="0" min="0" step="1"></div>
@@ -373,6 +373,10 @@
           <button class="btn" onclick="clearForm()">Clear</button>
         </div>
         <div id="form-msg"></div>
+        <div id="size-stock-preview" style="display:none;margin-top:14px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;align-items:center;justify-content:space-between;">
+          <span style="color:var(--text2);">Current stock for <strong id="preview-size-name"></strong>:</span>
+          <span id="preview-stock-val" style="font-family:'DM Mono',monospace;font-weight:600;font-size:15px;"></span>
+        </div>
 
       </div>
     </div>
@@ -401,6 +405,7 @@
       </div>
       <div class="card-body" style="padding-bottom:0;">
         <div class="filter-row">
+          <input type="text" id="filter-search" placeholder="🔍 Search entries..." oninput="renderLedger()" style="min-width:180px;">
           <select id="filter-type" onchange="renderLedger()">
             <option value="">All types</option>
             <option value="IN">IN only</option>
@@ -438,6 +443,10 @@
         </div>
       </div>
       <div class="card-body" style="padding-bottom:4px;">
+        <div style="margin-bottom:14px;">
+          <input type="text" id="stock-search" placeholder="🔍 Search by size/grade..." oninput="renderStock()"
+            style="padding:8px 12px;font-size:13px;font-family:inherit;border:1px solid var(--border);border-radius:var(--radius-sm);width:100%;max-width:320px;outline:none;">
+        </div>
         <div id="stock-cards"></div>
       </div>
     </div>
@@ -483,6 +492,29 @@
     </div>
   </div>
 
+
+  <!-- Edit Size Modal -->
+  <div id="edit-size-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:var(--surface);border-radius:var(--radius);padding:24px 28px;width:100%;max-width:380px;margin:20px;box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+        <span style="font-size:16px;font-weight:600;">Rename Size / Grade</span>
+        <button class="btn sm" onclick="closeEditSizeModal()">✕</button>
+      </div>
+      <div class="field" style="margin-bottom:16px;">
+        <label>Current name</label>
+        <input type="text" id="edit-size-old" disabled style="opacity:0.6;">
+      </div>
+      <div class="field" style="margin-bottom:16px;">
+        <label>New name</label>
+        <input type="text" id="edit-size-new" onkeydown="if(event.key==='Enter')saveEditSize()">
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="saveEditSize()">✓ Rename</button>
+        <button class="btn" onclick="closeEditSizeModal()">Cancel</button>
+      </div>
+      <div id="edit-size-msg" style="font-size:13px;margin-top:8px;min-height:18px;color:var(--text2);"></div>
+    </div>
+  </div>
 </div><!-- /shell -->
 
 <script>
@@ -539,9 +571,9 @@ function populateSizeFilter() {
   sel.innerHTML = '<option value="">All sizes</option>' +
     sizes.map(s => `<option value="${s}" ${s===cur?'selected':''}>${s}</option>`).join('');
   // also add sizes from entries not yet in list
-  const fromEntries = [...new Set(entries.map(e=>e.size).filter(Boolean))];
+  const fromEntries = [...new Set(entries.map(e=>e.size?e.size.toUpperCase():null).filter(Boolean))];
   fromEntries.forEach(s => {
-    if(!sizes.includes(s)) {
+    if(!sizes.some(x=>x.toUpperCase()===s)) {
       const o = document.createElement('option');
       o.value = s; o.textContent = s;
       if(s===cur) o.selected=true;
@@ -552,9 +584,9 @@ function populateSizeFilter() {
 
 function addSize() {
   const input = document.getElementById('new-size-input');
-  const val = input.value.trim();
+  const val = input.value.trim().toUpperCase();
   if(!val) return;
-  if(!sizes.includes(val)) { sizes.push(val); save(); populateSizeDatalist(); renderSizeChips(); }
+  if(!sizes.some(s=>s.toUpperCase()===val)) { sizes.push(val); save(); populateSizeDatalist(); renderSizeChips(); }
   input.value = '';
 }
 
@@ -567,21 +599,22 @@ function renderSizeChips() {
   if(!sizes.length) { container.innerHTML = '<span style="font-size:13px;color:var(--text3);">No sizes added yet.</span>'; return; }
   container.innerHTML = sizes.map(s => `
     <div class="size-chip">${s}
+      <button onclick="openEditSizeModal('${s.replace(/'/g,"\\'")}') " title="Rename" style="font-size:12px;margin-right:2px;">✎</button>
       <button onclick="removeSize('${s.replace(/'/g,"\\'")}')">×</button>
     </div>`).join('');
 }
 
 // Auto-save size when a new one is typed in entry form
 function maybeSaveSize(val) {
-  val = val.trim();
-  if(val && !sizes.includes(val)) { sizes.push(val); save(); populateSizeDatalist(); }
+  val = val.trim().toUpperCase();
+  if(val && !sizes.some(s=>s.toUpperCase()===val)) { sizes.push(val); save(); populateSizeDatalist(); }
 }
 
 // ── Entry CRUD ─────────────────────────────────────────────────────────────
 function addEntry() {
   const date   = document.getElementById('f-date').value;
   const type   = document.getElementById('f-type').value;
-  const size   = document.getElementById('f-size').value.trim();
+  const size   = document.getElementById('f-size').value.trim().toUpperCase();
   const pieces = parseFloat(document.getElementById('f-pieces').value);
   const carats = parseFloat(document.getElementById('f-carats').value);
   const ref    = document.getElementById('f-ref').value.trim();
@@ -696,15 +729,20 @@ function renderDashboard() {
 
 // ── Ledger ─────────────────────────────────────────────────────────────────
 function getFiltered() {
-  const type = document.getElementById('filter-type').value;
-  const size = document.getElementById('filter-size').value;
-  const from = document.getElementById('filter-from').value;
-  const to   = document.getElementById('filter-to').value;
+  const type   = document.getElementById('filter-type').value;
+  const size   = document.getElementById('filter-size').value;
+  const from   = document.getElementById('filter-from').value;
+  const to     = document.getElementById('filter-to').value;
+  const search = (document.getElementById('filter-search')?.value||'').toLowerCase().trim();
   return entries.filter(e => {
     if(type && e.type!==type) return false;
-    if(size && e.size!==size) return false;
+    if(size && (e.size||'').toUpperCase()!==size.toUpperCase()) return false;
     if(from && e.date<from)   return false;
     if(to   && e.date>to)     return false;
+    if(search) {
+      const hay = [e.size,e.ref,e.notes,e.type,fmtDate(e.date)].join(' ').toLowerCase();
+      if(!hay.includes(search)) return false;
+    }
     return true;
   });
 }
@@ -744,7 +782,7 @@ function renderLedger() {
 }
 
 function clearFilters() {
-  ['filter-type','filter-size','filter-from','filter-to'].forEach(id => document.getElementById(id).value='');
+  ['filter-search','filter-type','filter-size','filter-from','filter-to'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
   renderLedger();
 }
 
@@ -752,16 +790,18 @@ function clearFilters() {
 function getStockMap() {
   const map = {};
   entries.forEach(e => {
-    const k = e.size || 'Unspecified';
+    const k = (e.size || 'Unspecified').toUpperCase();
     if(!map[k]) map[k] = {size:k,inP:0,outP:0,inC:0,outC:0};
     if(e.type==='IN')  { map[k].inP+=e.pieces;  map[k].inC+=e.carats; }
     else               { map[k].outP+=e.pieces; map[k].outC+=e.carats; }
   });
-  return Object.values(map);
+  return Object.values(map).sort((a,b)=>a.size.localeCompare(b.size));
 }
 
 function renderStock() {
-  const rows = getStockMap();
+  const sq = (document.getElementById('stock-search')?.value||'').toLowerCase().trim();
+  const allRows = getStockMap();
+  const rows = sq ? allRows.filter(r => r.size.toLowerCase().includes(sq)) : allRows;
   const cardsEl = document.getElementById('stock-cards');
   const tbody   = document.getElementById('stock-tbody');
   const tfoot   = document.getElementById('stock-tfoot');
@@ -1038,6 +1078,59 @@ function clearAllData() {
   entries=[]; sizes=[]; save(); populateSizeDatalist();
   renderDashboard(); renderSizeChips();
   showNotice('All data cleared.','warn');
+}
+
+
+// ── Edit Size Modal ────────────────────────────────────────────────────────
+let editingSizeName = null;
+
+function openEditSizeModal(s) {
+  editingSizeName = s;
+  document.getElementById('edit-size-old').value = s;
+  document.getElementById('edit-size-new').value = s;
+  document.getElementById('edit-size-msg').textContent = '';
+  document.getElementById('edit-size-modal').style.display='flex';
+  setTimeout(()=>document.getElementById('edit-size-new').focus(),100);
+}
+
+function closeEditSizeModal() {
+  document.getElementById('edit-size-modal').style.display='none';
+  editingSizeName = null;
+}
+
+function saveEditSize() {
+  const newName = document.getElementById('edit-size-new').value.trim().toUpperCase();
+  const msg = document.getElementById('edit-size-msg');
+  if(!newName) { msg.style.color='var(--red)'; msg.textContent='Please enter a name.'; return; }
+  if(newName===editingSizeName) { closeEditSizeModal(); return; }
+  // Rename in sizes list
+  const idx = sizes.indexOf(editingSizeName);
+  if(idx>-1) sizes[idx] = newName;
+  // Rename in all entries
+  entries.forEach(e=>{ if(e.size===editingSizeName) e.size=newName; });
+  save();
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(()=>{ if(driveConfig.token) uploadOnlyToDrive(); }, 3000);
+  populateSizeDatalist(); renderSizeChips(); renderDashboard(); renderLedger(); renderStock();
+  msg.style.color='var(--green)'; msg.textContent='Renamed successfully!';
+  setTimeout(closeEditSizeModal, 800);
+}
+
+// ── Size stock preview on New Entry ───────────────────────────────────────
+function updateSizePreview() {
+  const val = document.getElementById('f-size').value.trim().toUpperCase();
+  const preview = document.getElementById('size-stock-preview');
+  const nameEl  = document.getElementById('preview-size-name');
+  const valEl   = document.getElementById('preview-stock-val');
+  if(!val) { preview.style.display='none'; return; }
+  const map = getStockMap();
+  const row = map.find(r=>r.size.toUpperCase()===val);
+  const netP = row ? row.inP - row.outP : 0;
+  const netC = row ? row.inC - row.outC : 0;
+  nameEl.textContent = val;
+  valEl.textContent  = `${netP} pcs · ${parseFloat(netC).toFixed(2)} ct`;
+  valEl.style.color  = netP>0 ? 'var(--green)' : netP<0 ? 'var(--red)' : 'var(--text3)';
+  preview.style.display='flex';
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
