@@ -931,16 +931,23 @@ function renderDashboard() {
   const tbody = document.getElementById('recent-tbody');
   const r = entries.slice(0,10);
   tbody.innerHTML = r.length
-    ? r.map(e=>`<tr>
+    ? r.map(e=>{
+        const ps=parseShapeSize(e.size);
+        const sh=e.shape||ps.shape||'—';
+        const sz=ps.size||e.size||'—';
+        const col=(e.colour&&e.colour!=='WHITE')?e.colour:'—';
+        return `<tr>
         <td>${fmtDate(e.date)}</td>
         <td><span class="badge ${e.type.toLowerCase()}">${e.type}</span></td>
-        <td>${e.size||'—'}</td>
+        <td>${sh}</td>
+        <td>${sz}</td>
+        <td>${col}</td>
         <td class="mono">${e.pieces}</td>
-        <td class="mono">${fmt(e.carats)}</td>
+        <td class="mono">${fmt3(e.carats)}</td>
         <td>${e.ref||'—'}</td>
         <td>${e.notes||'—'}</td>
-      </tr>`).join('')
-    : '<tr><td colspan="7" class="empty">No transactions yet</td></tr>';
+      </tr>`;}).join('')
+    : '<tr><td colspan="9" class="empty">No transactions yet</td></tr>';
 }
 
 // ── Ledger ─────────────────────────────────────────────────────────────────
@@ -1039,25 +1046,43 @@ function renderStock() {
     tfoot.innerHTML=''; return;
   }
 
-  // Cards
-  cardsEl.innerHTML = `<div class="stock-summary">${rows.map(r => {
+  // Cards — split in-stock vs out-of-stock
+  function makeCard(r) {
     const np=r.inP-r.outP, nc=r.inC-r.outC;
     const col = np>0?'var(--green)':np<0?'var(--red)':'var(--text3)';
+    const ps = parseShapeSize(r.size);
+    const colLabel = (r.colour&&r.colour!=='WHITE') ? ' · '+r.colour : '';
+    const displaySize = ps.size || r.size;
     return `<div class="stock-card">
-      <div class="stock-card-size">💎 ${r.size}${(r.colour&&r.colour!=='WHITE')?' · '+r.colour:''}</div>
+      <div class="stock-card-size">💎 ${ps.shape||r.size} ${displaySize}${colLabel}</div>
       <div class="stock-card-row"><span>IN pieces</span><span>${r.inP}</span></div>
       <div class="stock-card-row"><span>OUT pieces</span><span>${r.outP}</span></div>
-      <div class="stock-card-row"><span>IN carats</span><span>${fmt(r.inC)}</span></div>
-      <div class="stock-card-row"><span>OUT carats</span><span>${fmt(r.outC)}</span></div>
+      <div class="stock-card-row"><span>IN carats</span><span>${fmt3(r.inC)}</span></div>
+      <div class="stock-card-row"><span>OUT carats</span><span>${fmt3(r.outC)}</span></div>
       <div class="stock-card-net">
         <div>
           <div class="stock-card-net-label">Net on hand</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:2px;">${fmt(nc)} ct</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">${fmt3(nc)} ct</div>
         </div>
         <div class="stock-card-net-val" style="color:${col}">${np} pcs</div>
       </div>
     </div>`;
-  }).join('')}</div>`;
+  }
+  const inStockRows  = rows.filter(r=>(r.inP-r.outP)>0);
+  const outStockRows = rows.filter(r=>(r.inP-r.outP)<=0);
+  let cardsHTML = '';
+  if(inStockRows.length) cardsHTML += `<div class="stock-summary">${inStockRows.map(makeCard).join('')}</div>`;
+  if(outStockRows.length) {
+    cardsHTML += `<div style="margin-top:16px;">
+      <button class="btn sm" onclick="toggleOutOfStock()" id="oos-toggle" style="margin-bottom:10px;">
+        ▶ Show out of stock (${outStockRows.length})
+      </button>
+      <div id="oos-cards" style="display:none;">
+        <div class="stock-summary">${outStockRows.map(makeCard).join('')}</div>
+      </div>
+    </div>`;
+  }
+  cardsEl.innerHTML = cardsHTML || '<p class="empty">No data yet.</p>';
 
   // Table
   tbody.innerHTML = rows.map(r => {
