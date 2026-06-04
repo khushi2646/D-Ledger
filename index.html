@@ -359,11 +359,6 @@
             <select id="f-type" onchange="LS.set('dl_last_type',this.value)"><option value="IN">IN (Received)</option><option value="OUT">OUT (Dispatched)</option></select>
           </div>
           <div class="field">
-            <label>Size / Grade</label>
-            <input type="text" id="f-size" list="size-list" placeholder="Type or select..." autocomplete="off" oninput="updateSizePreview()">
-            <datalist id="size-list"></datalist>
-          </div>
-          <div class="field">
           <label>Colour</label>
           <select id="f-colour" onchange="updateSizePreview()">
             <option value="WHITE">White (Default)</option>
