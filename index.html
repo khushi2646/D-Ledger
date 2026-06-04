@@ -808,6 +808,10 @@ function addEntry() {
   setTimeout(()=>msg.textContent='', 3000);
   clearForm(true);
   renderDashboard();
+  renderLedger();
+  renderStock();
+  renderTodayEntries();
+  populateSizeFilter();
 }
 
 function clearForm(keepMsg) {
@@ -929,7 +933,7 @@ function renderDashboard() {
   document.getElementById('s-entries').textContent = entries.length;
   document.getElementById('s-last').textContent = entries.length ? 'Last: '+fmtDate(entries[0].date) : '—';
   const tbody = document.getElementById('recent-tbody');
-  const r = entries.slice(0,10);
+  const r = [...entries].sort((a,b)=>b.date.localeCompare(a.date)||(b.id-a.id)).slice(0,10);
   tbody.innerHTML = r.length
     ? r.map(e=>{
         const ps=parseShapeSize(e.size);
@@ -983,11 +987,12 @@ function renderLedger() {
     tbody.innerHTML='<tr><td colspan="9" class="empty">No matching entries</td></tr>';
     tfoot.innerHTML=''; footer.textContent=''; return;
   }
-  tbody.innerHTML = filtered.map((e,i) => {
+  const sortedFiltered = [...filtered].sort((a,b)=>b.date.localeCompare(a.date)||(b.id-a.id));
+  tbody.innerHTML = sortedFiltered.map((e,i) => {
     const ps=parseShapeSize(e.size);const sh=e.shape||ps.shape;const sz=e.shape?e.size:ps.size;
     const col=(e.colour&&e.colour!=='WHITE')?e.colour:'—';
     return `<tr>
-    <td class="mono" style="color:var(--text3)">${filtered.length-i}</td>
+    <td class="mono" style="color:var(--text3)">${sortedFiltered.length-i}</td>
     <td>${fmtDate(e.date)}</td>
     <td><span class="badge ${e.type.toLowerCase()}">${e.type}</span></td>
     <td>${sh||'—'}</td>
@@ -1090,9 +1095,11 @@ function renderStock() {
     const cl = np>0?'positive':np<0?'negative':'';
     const ps = parseShapeSize(r.size);
     const displayCol = (r.colour&&r.colour!=='WHITE') ? r.colour : '—';
+    const stockShape = r.shape || ps.shape || '—';
+    const stockSize  = r.size ? (ps.size || r.size) : '—';
     return `<tr>
-      <td>${ps.shape||'—'}</td>
-      <td>${ps.size||r.size}</td>
+      <td>${stockShape}</td>
+      <td>${stockSize}</td>
       <td>${displayCol}</td>
       <td class="mono">${r.inP}</td><td class="mono">${r.outP}</td>
       <td class="mono ${cl}">${np}</td>
@@ -1163,7 +1170,7 @@ function importJSON(event) {
         if(data.shapes)  shapes  = data.shapes;
         if(data.colours) colours = data.colours;
         migrateEntries();
-        save(); populateSizeDatalist(); populateSizeFilter(); populateColourDropdown(); renderDashboard(); renderSizeChips(); renderShapeChips();
+        save(); populateSizeDatalist(); populateSizeFilter(); populateColourDropdown(); renderDashboard(); renderSizeChips(); renderShapeChips(); renderColourChips();
         showNotice('Data imported successfully! Pushing to Drive...','success');
         // Upload local data to Drive immediately — do NOT pull from Drive
         if(driveConfig.token) {
