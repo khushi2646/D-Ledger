@@ -359,15 +359,23 @@
             <select id="f-type" onchange="LS.set('dl_last_type',this.value)"><option value="IN">IN (Received)</option><option value="OUT">OUT (Dispatched)</option></select>
           </div>
           <div class="field">
-          <label>Colour</label>
-          <select id="f-colour" onchange="updateSizePreview()">
-            <option value="WHITE">White (Default)</option>
-          </select>
-        </div>
-        <div class="field"><label>No. of Pieces *</label><input type="number" id="f-pieces" placeholder="0" min="0" step="1"></div>
-          <div class="field"><label>Carat Weight *</label><input type="number" id="f-carats" placeholder="0.00" step="0.01" min="0"></div>
+            <label>Shape *</label>
+            <input type="text" id="f-shape" list="shape-list" placeholder="Type or select..." autocomplete="off" oninput="onShapeChange()" style="text-transform:uppercase;">
+            <datalist id="shape-list"></datalist>
+          </div>
+          <div class="field"><label>Length (MM) *</label><input type="number" id="f-length" placeholder="0.00" step="0.01" min="0" oninput="updateSizePreview()"></div>
+          <div class="field" id="f-width-wrap"><label>Width (MM) *</label><input type="number" id="f-width" placeholder="0.00" step="0.01" min="0" oninput="updateSizePreview()"></div>
+          <div class="field"><label>No. of Pieces *</label><input type="number" id="f-pieces" placeholder="0" min="0" step="1"></div>
+          <div class="field"><label>Carat Weight *</label><input type="number" id="f-carats" placeholder="0.000" step="0.001" min="0"></div>
+          <div class="field">
+            <label>Colour</label>
+            <select id="f-colour" onchange="updateSizePreview()">
+              <option value="WHITE">White (Default)</option>
+            </select>
+          </div>
           <div class="field"><label>Invoice / Ref No.</label><input type="text" id="f-ref" placeholder="Optional"></div>
           <div class="field" style="grid-column: span 2;"><label>Notes</label><input type="text" id="f-notes" placeholder="Optional remarks"></div>
+          <datalist id="size-list"></datalist>
         </div>
         <div class="btn-row">
           <button class="btn primary" onclick="addEntry()" id="save-btn">✓ Save Entry</button>
@@ -662,29 +670,16 @@ function populateSizeFilter() {
       }
     });
   }
-  // Populate shape filter
-  const shSel = document.getElementById('filter-shape');
-  if(shSel) {
-    const curSh = shSel.value;
-    shSel.innerHTML = '<option value="">All shapes</option>' +
+
+  // Populate shape datalist (typable input)
+  const shapeDL = document.getElementById('shape-list');
+  if(shapeDL) shapeDL.innerHTML = shapes.map(s=>`<option value="${s}">`).join('');
+  // Populate filter-shape select in ledger
+  const fShapeSel = document.getElementById('filter-shape');
+  if(fShapeSel) {
+    const curSh = fShapeSel.value;
+    fShapeSel.innerHTML = '<option value="">All shapes</option>' +
       shapes.map(s=>`<option value="${s}" ${s===curSh?'selected':''}>${s}</option>`).join('');
-  }
-  // Populate entry form shape dropdown
-  const fShape = document.getElementById('f-shape');
-  if(fShape) {
-    const curFs = fShape.value;
-    const stockMap = getStockMap();
-    const inStockShapes = shapes.filter(s => {
-      const row = stockMap.find(r=>r.size.toUpperCase().startsWith(s+' ')||r.size.toUpperCase()===s);
-      return row && (row.inP-row.outP)>0;
-    });
-    const outStockShapes = shapes.filter(s=>!inStockShapes.includes(s));
-    let opts = '<option value="">Select shape...</option>';
-    if(inStockShapes.length) opts += inStockShapes.map(s=>`<option value="${s}" ${s===curFs?'selected':''}>${s}</option>`).join('');
-    if(outStockShapes.length) {
-      opts += `<optgroup label="── Out of Stock ──">` + outStockShapes.map(s=>`<option value="${s}" ${s===curFs?'selected':''}>${s}</option>`).join('') + '</optgroup>';
-    }
-    fShape.innerHTML = opts;
   }
 }
 
@@ -787,18 +782,27 @@ function maybeSaveSize(val) {
 function addEntry() {
   const date   = document.getElementById('f-date').value;
   const type   = document.getElementById('f-type').value;
-  const size   = document.getElementById('f-size').value.trim().toUpperCase();
+  const shape  = document.getElementById('f-shape').value.toUpperCase().trim();
+  const colour = (document.getElementById('f-colour').value||'WHITE').toUpperCase().trim();
+  const length = parseFloat(document.getElementById('f-length').value||0);
+  const width  = shape==='ROUND' ? 0 : parseFloat(document.getElementById('f-width').value||0);
   const pieces = parseFloat(document.getElementById('f-pieces').value);
   const carats = parseFloat(document.getElementById('f-carats').value);
   const ref    = document.getElementById('f-ref').value.trim();
   const notes  = document.getElementById('f-notes').value.trim();
   const msg    = document.getElementById('form-msg');
-
-  if(!date || isNaN(pieces)||pieces<=0 || isNaN(carats)||carats<=0) {
-    msg.style.color='var(--red)'; msg.textContent='Please fill in Date, Pieces and Carat Weight.'; return;
+  if(!date || !shape || isNaN(length)||length<=0 || isNaN(pieces)||pieces<=0 || isNaN(carats)||carats<=0) {
+    msg.style.color='var(--red)'; msg.textContent='Please fill in Date, Shape, Length, Pieces and Carat Weight.'; return;
   }
+  if(!shapes.includes(shape)) {
+    msg.style.color='var(--red)'; msg.textContent='"'+shape+'" is not a valid shape. Go to Settings → Manage Shapes to add it.'; return;
+  }
+  if(shape!=='ROUND' && (isNaN(width)||width<=0)) {
+    msg.style.color='var(--red)'; msg.textContent='Please fill in Width for this shape.'; return;
+  }
+  const size = buildSizeLabel(shape, length, width, colour);
   maybeSaveSize(size);
-  entries.unshift({ id: Date.now(), date, type, size, pieces, carats, ref, notes });
+  entries.unshift({ id: Date.now(), date, type, shape, colour, size, pieces, carats, ref, notes });
   save(); autoSyncDrive();
   msg.style.color='var(--green)'; msg.textContent='Entry saved!';
   setTimeout(()=>msg.textContent='', 3000);
@@ -818,11 +822,36 @@ function clearForm(keepMsg) {
 }
 
 function onShapeChange() {
-  const shape = document.getElementById('f-shape').value.toUpperCase();
+  const shape = document.getElementById('f-shape').value.toUpperCase().trim();
   const widthWrap = document.getElementById('f-width-wrap');
   widthWrap.style.display = (shape==='ROUND') ? 'none' : 'flex';
   updateSizePreview();
 }
+
+function validateShape() {
+  const input = document.getElementById('f-shape');
+  const val = input.value.toUpperCase().trim();
+  if(!val) return;
+  if(!shapes.includes(val)) {
+    const original = input.value;
+    input.value = '';
+    input.style.borderColor = 'var(--red)';
+    const msg = document.getElementById('form-msg');
+    msg.style.color = 'var(--red)';
+    msg.textContent = '"' + original.toUpperCase() + '" is not in your shape list. Go to Settings → Manage Shapes to add it.';
+    setTimeout(() => { input.style.borderColor = ''; msg.textContent = ''; }, 4000);
+  } else {
+    input.value = val;
+    input.style.borderColor = '';
+    onShapeChange();
+  }
+}
+
+// Make sure width is visible on page load
+document.addEventListener('DOMContentLoaded', function() {
+  const widthWrap = document.getElementById('f-width-wrap');
+  if(widthWrap) widthWrap.style.display='flex';
+});
 
 function renderTodayEntries() {
   const t = today();
@@ -1393,9 +1422,9 @@ function initApp() {
   document.getElementById('f-date').value = today();
   const lastType = LS.get('dl_last_type') || 'IN';
   document.getElementById('f-type').value = lastType;
-  // Set width field hidden by default (round is default)
+  // Width visible by default, only hidden when Round is selected
   const widthWrap = document.getElementById('f-width-wrap');
-  if(widthWrap) widthWrap.style.display='none';
+  if(widthWrap) widthWrap.style.display='flex';
   populateSizeDatalist();
   populateSizeFilter();
   populateColourDropdown();
