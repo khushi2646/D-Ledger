@@ -341,7 +341,7 @@
       <div class="card-header"><span class="card-title">Recent transactions</span></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Date</th><th>Type</th><th>Shape</th><th>Size</th><th>Pieces</th><th>Carats</th><th>Ref</th><th>Notes</th></tr></thead>
+          <thead><tr><th>Date</th><th>Type</th><th>Shape</th><th>Size</th><th>Colour</th><th>Pieces</th><th>Carats</th><th>Ref</th><th>Notes</th></tr></thead>
           <tbody id="recent-tbody"><tr><td colspan="7" class="empty">No transactions yet</td></tr></tbody>
         </table>
       </div>
@@ -363,7 +363,13 @@
             <input type="text" id="f-size" list="size-list" placeholder="Type or select..." autocomplete="off" oninput="updateSizePreview()">
             <datalist id="size-list"></datalist>
           </div>
-          <div class="field"><label>No. of Pieces *</label><input type="number" id="f-pieces" placeholder="0" min="0" step="1"></div>
+          <div class="field">
+          <label>Colour</label>
+          <select id="f-colour" onchange="updateSizePreview()">
+            <option value="WHITE">White (Default)</option>
+          </select>
+        </div>
+        <div class="field"><label>No. of Pieces *</label><input type="number" id="f-pieces" placeholder="0" min="0" step="1"></div>
           <div class="field"><label>Carat Weight *</label><input type="number" id="f-carats" placeholder="0.00" step="0.01" min="0"></div>
           <div class="field"><label>Invoice / Ref No.</label><input type="text" id="f-ref" placeholder="Optional"></div>
           <div class="field" style="grid-column: span 2;"><label>Notes</label><input type="text" id="f-notes" placeholder="Optional remarks"></div>
@@ -386,7 +392,7 @@
       <div class="card-header"><span class="card-title">Today's entries</span></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Type</th><th>Shape</th><th>Size</th><th>Pieces</th><th>Carats</th><th>Ref</th><th>Notes</th></tr></thead>
+          <thead><tr><th>Type</th><th>Shape</th><th>Size</th><th>Colour</th><th>Pieces</th><th>Carats</th><th>Ref</th><th>Notes</th></tr></thead>
           <tbody id="today-tbody"><tr><td colspan="6" class="empty">No entries today yet</td></tr></tbody>
         </table>
       </div>
@@ -424,7 +430,7 @@
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>#</th><th>Date</th><th>Type</th><th>Shape</th><th>Size</th><th>Pieces</th><th>Carats</th><th>Ref</th><th>Notes</th><th></th></tr></thead>
+          <thead><tr><th>#</th><th>Date</th><th>Type</th><th>Shape</th><th>Size</th><th>Colour</th><th>Pieces</th><th>Carats</th><th>Ref</th><th>Notes</th><th></th></tr></thead>
           <tbody id="ledger-tbody"><tr><td colspan="9" class="empty">No entries yet</td></tr></tbody>
           <tfoot id="ledger-tfoot"></tfoot>
         </table>
@@ -455,7 +461,7 @@
       <div class="card-header"><span class="card-title">Stock table — all sizes</span></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Shape</th><th>Size</th><th>IN (pcs)</th><th>OUT (pcs)</th><th>Net (pcs)</th><th>IN (ct)</th><th>OUT (ct)</th><th>Net (ct)</th><th>Status</th></tr></thead>
+          <thead><tr><th>Shape</th><th>Size</th><th>Colour</th><th>IN (pcs)</th><th>OUT (pcs)</th><th>Net (pcs)</th><th>IN (ct)</th><th>OUT (ct)</th><th>Net (ct)</th><th>Status</th></tr></thead>
           <tbody id="stock-tbody"></tbody>
           <tfoot id="stock-tfoot"></tfoot>
         </table>
@@ -465,6 +471,19 @@
 
   <!-- SETTINGS -->
   <div id="tab-settings" style="display:none">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Manage colours</span></div>
+      <div class="card-body">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Add or remove diamond colours. White is always available as default and cannot be removed.</p>
+        <div class="btn-row" style="margin-bottom:12px;">
+          <input type="text" id="new-colour-input" placeholder="Type new colour..." style="padding:8px 11px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;width:220px;"
+            onkeydown="if(event.key==='Enter')addColour()">
+          <button class="btn primary" onclick="addColour()">+ Add</button>
+        </div>
+        <div class="size-chips" id="colour-chips"></div>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-header"><span class="card-title">Manage shapes</span></div>
       <div class="card-body">
@@ -538,11 +557,13 @@ const LS = {
   set: (k,v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
 };
 
-const DEFAULT_SHAPES = ['ROUND','PRINCESS','PEAR','OVAL','MARQUISE','HEART','CUSHION','EMERALD','TRILLION','RADIANT','LOZENGE','BAGUETTE'];
-let entries     = LS.get('dl_entries') || [];
-let sizes       = LS.get('dl_sizes')   || [];
-let shapes      = LS.get('dl_shapes')  || [...DEFAULT_SHAPES];
-let driveConfig = LS.get('dl_drive')   || { clientId: '', token: '' };
+const DEFAULT_SHAPES  = ['ROUND','PRINCESS','PEAR','OVAL','MARQUISE','HEART','CUSHION','EMERALD','TRILLION','RADIANT','LOZENGE','BAGUETTE'];
+const DEFAULT_COLOURS = ['WHITE','YELLOW','PINK','BLUE','GREEN','BROWN','BLACK'];
+let entries     = LS.get('dl_entries')  || [];
+let sizes       = LS.get('dl_sizes')    || [];
+let shapes      = LS.get('dl_shapes')   || [...DEFAULT_SHAPES];
+let colours     = LS.get('dl_colours')  || [...DEFAULT_COLOURS];
+let driveConfig = LS.get('dl_drive')    || { clientId: '', token: '' };
 let gapi_loaded = false;
 
 // Migrate old entries: if entry has no shape field, try to parse from size
@@ -570,6 +591,7 @@ function save() {
   LS.set('dl_entries', entries);
   LS.set('dl_sizes', sizes);
   LS.set('dl_shapes', shapes);
+  LS.set('dl_colours', colours);
   LS.set('dl_drive', driveConfig);
 }
 
@@ -578,14 +600,19 @@ const fmt    = n => parseFloat(n||0).toFixed(2);
 const fmt3   = n => parseFloat(n||0).toFixed(3);
 const fmtMM  = n => parseFloat(n||0).toFixed(2);
 
-function buildSizeLabel(shape, length, width) {
+function buildSizeLabel(shape, length, width, colour) {
   shape  = (shape||'').toUpperCase().trim();
+  colour = (colour||'WHITE').toUpperCase().trim();
   length = fmtMM(length);
   width  = fmtMM(width);
+  let label = '';
   if(!shape) return length;
-  if(shape === 'ROUND') return shape + ' ' + length;
-  if(width && parseFloat(width) > 0) return shape + ' ' + length + 'X' + width;
-  return shape + ' ' + length;
+  if(shape === 'ROUND') label = shape + ' ' + length;
+  else if(width && parseFloat(width) > 0) label = shape + ' ' + length + 'X' + width;
+  else label = shape + ' ' + length;
+  // Only append colour if not white
+  if(colour && colour !== 'WHITE') label += ' ' + colour;
+  return label;
 }
 
 function parseShapeSize(combined) {
@@ -711,6 +738,40 @@ function removeShape(s) {
   shapes = shapes.filter(x=>x!==s); save(); renderShapeChips(); populateSizeFilter();
 }
 
+function populateColourDropdown() {
+  const sel = document.getElementById('f-colour');
+  if(!sel) return;
+  const cur = sel.value || 'WHITE';
+  sel.innerHTML = '<option value="WHITE">White (Default)</option>' +
+    colours.filter(c=>c!=='WHITE').map(c=>`<option value="${c}" ${c===cur?'selected':''}>${c.charAt(0)+c.slice(1).toLowerCase()}</option>`).join('');
+  if(cur && cur!=='WHITE') sel.value = cur;
+}
+
+function renderColourChips() {
+  const container = document.getElementById('colour-chips');
+  if(!container) return;
+  const nonWhite = colours.filter(c=>c!=='WHITE');
+  if(!nonWhite.length) { container.innerHTML = '<span style="font-size:13px;color:var(--text3);">No extra colours added. White is always available.</span>'; return; }
+  container.innerHTML = nonWhite.map(c => `
+    <div class="size-chip">${c.charAt(0)+c.slice(1).toLowerCase()}
+      <button onclick="removeColour('${c}')">×</button>
+    </div>`).join('');
+}
+
+function addColour() {
+  const input = document.getElementById('new-colour-input');
+  const val = input.value.trim().toUpperCase();
+  if(!val || val==='WHITE') return;
+  if(!colours.some(c=>c===val)) { colours.push(val); save(); renderColourChips(); populateColourDropdown(); }
+  input.value = '';
+}
+
+function removeColour(c) {
+  if(c==='WHITE') return;
+  if(!confirm(`Remove colour "${c}"? This does not affect existing entries.`)) return;
+  colours = colours.filter(x=>x!==c); save(); renderColourChips(); populateColourDropdown();
+}
+
 function toggleOutOfStock() {
   const el  = document.getElementById('oos-cards');
   const btn = document.getElementById('oos-toggle');
@@ -752,6 +813,7 @@ function addEntry() {
 
 function clearForm(keepMsg) {
   ['f-length','f-width','f-pieces','f-carats','f-ref','f-notes'].forEach(id => document.getElementById(id).value='');
+  const fColour = document.getElementById('f-colour'); if(fColour) fColour.value='WHITE';
   document.getElementById('f-date').value  = today();
   const lastType = LS.get('dl_last_type') || 'IN';
   document.getElementById('f-type').value  = lastType;
@@ -778,10 +840,12 @@ function renderTodayEntries() {
   }
   tbody.innerHTML = todayList.map(e => {
     const ps=parseShapeSize(e.size);const sh=e.shape||ps.shape;const sz=e.shape?e.size:ps.size;
+    const col=(e.colour&&e.colour!=='WHITE')?e.colour:'—';
     return `<tr>
     <td><span class="badge ${e.type.toLowerCase()}">${e.type}</span></td>
     <td>${sh||'—'}</td>
     <td>${sz||'—'}</td>
+    <td>${col}</td>
     <td class="mono">${e.pieces}</td>
     <td class="mono">${fmt3(e.carats)}</td>
     <td>${e.ref||'—'}</td>
@@ -890,12 +954,14 @@ function renderLedger() {
   }
   tbody.innerHTML = filtered.map((e,i) => {
     const ps=parseShapeSize(e.size);const sh=e.shape||ps.shape;const sz=e.shape?e.size:ps.size;
+    const col=(e.colour&&e.colour!=='WHITE')?e.colour:'—';
     return `<tr>
     <td class="mono" style="color:var(--text3)">${filtered.length-i}</td>
     <td>${fmtDate(e.date)}</td>
     <td><span class="badge ${e.type.toLowerCase()}">${e.type}</span></td>
     <td>${sh||'—'}</td>
     <td>${sz||'—'}</td>
+    <td>${col}</td>
     <td class="mono">${e.pieces}</td>
     <td class="mono">${fmt3(e.carats)}</td>
     <td>${e.ref||'—'}</td>
@@ -925,12 +991,14 @@ function clearFilters() {
 function getStockMap() {
   const map = {};
   entries.forEach(e => {
-    const k = (e.size || 'Unspecified').toUpperCase();
-    if(!map[k]) map[k] = {size:k,inP:0,outP:0,inC:0,outC:0};
+    const sz  = (e.size || 'Unspecified').toUpperCase();
+    const col = (e.colour && e.colour !== 'WHITE') ? e.colour.toUpperCase() : 'WHITE';
+    const k   = sz + '||' + col;
+    if(!map[k]) map[k] = {size:sz, colour:col, inP:0, outP:0, inC:0, outC:0};
     if(e.type==='IN')  { map[k].inP+=e.pieces;  map[k].inC+=e.carats; }
     else               { map[k].outP+=e.pieces; map[k].outC+=e.carats; }
   });
-  return Object.values(map).sort((a,b)=>a.size.localeCompare(b.size));
+  return Object.values(map).sort((a,b)=>a.size.localeCompare(b.size)||a.colour.localeCompare(b.colour));
 }
 
 function renderStock() {
@@ -952,7 +1020,7 @@ function renderStock() {
     const np=r.inP-r.outP, nc=r.inC-r.outC;
     const col = np>0?'var(--green)':np<0?'var(--red)':'var(--text3)';
     return `<div class="stock-card">
-      <div class="stock-card-size">💎 ${r.size}</div>
+      <div class="stock-card-size">💎 ${r.size}${(r.colour&&r.colour!=='WHITE')?' · '+r.colour:''}</div>
       <div class="stock-card-row"><span>IN pieces</span><span>${r.inP}</span></div>
       <div class="stock-card-row"><span>OUT pieces</span><span>${r.outP}</span></div>
       <div class="stock-card-row"><span>IN carats</span><span>${fmt(r.inC)}</span></div>
@@ -972,9 +1040,11 @@ function renderStock() {
     const np=r.inP-r.outP, nc=r.inC-r.outC;
     const cl = np>0?'positive':np<0?'negative':'';
     const ps = parseShapeSize(r.size);
+    const displayCol = (r.colour&&r.colour!=='WHITE') ? r.colour : '—';
     return `<tr>
       <td>${ps.shape||'—'}</td>
       <td>${ps.size||r.size}</td>
+      <td>${displayCol}</td>
       <td class="mono">${r.inP}</td><td class="mono">${r.outP}</td>
       <td class="mono ${cl}">${np}</td>
       <td class="mono">${fmt3(r.inC)}</td><td class="mono">${fmt3(r.outC)}</td>
@@ -986,7 +1056,7 @@ function renderStock() {
   const tIP=rows.reduce((a,r)=>a+r.inP,0), tOP=rows.reduce((a,r)=>a+r.outP,0);
   const tIC=rows.reduce((a,r)=>a+r.inC,0), tOC=rows.reduce((a,r)=>a+r.outC,0);
   tfoot.innerHTML=`<tr>
-    <td colspan="2">TOTAL</td>
+    <td colspan="3">TOTAL</td>
     <td>${tIP}</td><td>${tOP}</td><td class="${tIP-tOP>0?'positive':'negative'}">${tIP-tOP}</td>
     <td>${fmt3(tIC)}</td><td>${fmt3(tOC)}</td><td>${fmt3(tIC-tOC)}</td><td></td>
   </tr>`;
@@ -1040,10 +1110,11 @@ function importJSON(event) {
       if(data.entries) {
         if(!confirm(`Import ${data.entries.length} entries? This will REPLACE your current data.`)) return;
         entries = data.entries;
-        if(data.sizes)  sizes  = data.sizes;
-        if(data.shapes) shapes = data.shapes;
+        if(data.sizes)   sizes   = data.sizes;
+        if(data.shapes)  shapes  = data.shapes;
+        if(data.colours) colours = data.colours;
         migrateEntries();
-        save(); populateSizeDatalist(); populateSizeFilter(); renderDashboard(); renderSizeChips(); renderShapeChips();
+        save(); populateSizeDatalist(); populateSizeFilter(); populateColourDropdown(); renderDashboard(); renderSizeChips(); renderShapeChips();
         showNotice('Data imported successfully! Pushing to Drive...','success');
         // Upload local data to Drive immediately — do NOT pull from Drive
         if(driveConfig.token) {
@@ -1181,16 +1252,18 @@ async function syncDrive() {
         entries.forEach(e=>localMap[e.id]=e);
         remoteEntries.forEach(e=>localMap[e.id]=e);
         entries = Object.values(localMap).sort((a,b)=>b.date.localeCompare(a.date)||(b.id-a.id));
-        sizes  = [...new Set([...sizes,...remoteSizes])];
-        shapes = [...new Set([...shapes,...remoteShapes])];
+        sizes   = [...new Set([...sizes,...remoteSizes])];
+        shapes  = [...new Set([...shapes,...remoteShapes])];
+        const remoteColours = remote.colours||[];
+        colours = [...new Set([...colours,...remoteColours])];
         migrateEntries();
-        save(); populateSizeDatalist(); populateSizeFilter();
+        save(); populateSizeDatalist(); populateSizeFilter(); populateColourDropdown();
       } catch(e){/* use local */}
       // Upload merged
       await uploadDriveFile(fileId);
     }
     setDriveStatus('ok','Synced');
-    renderDashboard(); renderLedger(); renderStock(); renderSizeChips(); renderShapeChips();
+    renderDashboard(); renderLedger(); renderStock(); renderSizeChips(); renderShapeChips(); renderColourChips();
     showNotice('Synced with Google Drive!','success');
   } catch(err) {
     setDriveStatus('err','Error'); showNotice('Drive sync failed: '+err.message,'err');
@@ -1198,7 +1271,7 @@ async function syncDrive() {
 }
 
 async function uploadDriveFile(fileId) {
-  const content = JSON.stringify({entries,sizes,shapes,savedAt:new Date().toISOString()},null,2);
+  const content = JSON.stringify({entries,sizes,shapes,colours,savedAt:new Date().toISOString()},null,2);
   const blob = new Blob([content],{type:'application/json'});
   const meta = JSON.stringify({name:DRIVE_FILE,mimeType:'application/json'});
   const form = new FormData();
@@ -1260,13 +1333,14 @@ function saveEditSize() {
 // ── Size stock preview on New Entry ───────────────────────────────────────
 function updateSizePreview() {
   const shape  = (document.getElementById('f-shape')?.value||'').toUpperCase().trim();
+  const colour = (document.getElementById('f-colour')?.value||'WHITE').toUpperCase().trim();
   const length = parseFloat(document.getElementById('f-length')?.value||0);
   const width  = shape==='ROUND' ? 0 : parseFloat(document.getElementById('f-width')?.value||0);
   const preview = document.getElementById('size-stock-preview');
   const nameEl  = document.getElementById('preview-size-name');
   const valEl   = document.getElementById('preview-stock-val');
   if(!shape || !length) { if(preview) preview.style.display='none'; return; }
-  const label = buildSizeLabel(shape, length, width);
+  const label = buildSizeLabel(shape, length, width, colour);
   const map  = getStockMap();
   const row  = map.find(r=>r.size.toUpperCase()===label.toUpperCase());
   const netP = row ? row.inP - row.outP : 0;
@@ -1329,8 +1403,10 @@ function initApp() {
   if(widthWrap) widthWrap.style.display='none';
   populateSizeDatalist();
   populateSizeFilter();
+  populateColourDropdown();
   renderDashboard();
   renderShapeChips();
+  renderColourChips();
   if(driveConfig.clientId) setDriveStatus('','Configured (not synced)');
 }
 
