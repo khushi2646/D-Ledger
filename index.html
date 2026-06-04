@@ -341,7 +341,7 @@
       <div class="card-header"><span class="card-title">Recent transactions</span></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Date</th><th>Type</th><th>Size / Grade</th><th>Pieces</th><th>Carats</th><th>Ref</th><th>Notes</th></tr></thead>
+          <thead><tr><th>Date</th><th>Type</th><th>Shape</th><th>Size</th><th>Pieces</th><th>Carats</th><th>Ref</th><th>Notes</th></tr></thead>
           <tbody id="recent-tbody"><tr><td colspan="7" class="empty">No transactions yet</td></tr></tbody>
         </table>
       </div>
@@ -386,7 +386,7 @@
       <div class="card-header"><span class="card-title">Today's entries</span></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Type</th><th>Size / Grade</th><th>Pieces</th><th>Carats</th><th>Ref</th><th>Notes</th></tr></thead>
+          <thead><tr><th>Type</th><th>Shape</th><th>Size</th><th>Pieces</th><th>Carats</th><th>Ref</th><th>Notes</th></tr></thead>
           <tbody id="today-tbody"><tr><td colspan="6" class="empty">No entries today yet</td></tr></tbody>
         </table>
       </div>
@@ -406,6 +406,7 @@
       <div class="card-body" style="padding-bottom:0;">
         <div class="filter-row">
           <input type="text" id="filter-search" placeholder="🔍 Search entries..." oninput="renderLedger()" style="min-width:180px;">
+          <select id="filter-shape" onchange="renderLedger()"><option value="">All shapes</option></select>
           <select id="filter-type" onchange="renderLedger()">
             <option value="">All types</option>
             <option value="IN">IN only</option>
@@ -423,7 +424,7 @@
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>#</th><th>Date</th><th>Type</th><th>Size / Grade</th><th>Pieces</th><th>Carats</th><th>Ref</th><th>Notes</th><th></th></tr></thead>
+          <thead><tr><th>#</th><th>Date</th><th>Type</th><th>Shape</th><th>Size</th><th>Pieces</th><th>Carats</th><th>Ref</th><th>Notes</th><th></th></tr></thead>
           <tbody id="ledger-tbody"><tr><td colspan="9" class="empty">No entries yet</td></tr></tbody>
           <tfoot id="ledger-tfoot"></tfoot>
         </table>
@@ -454,7 +455,7 @@
       <div class="card-header"><span class="card-title">Stock table — all sizes</span></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Size / Grade</th><th>IN (pcs)</th><th>OUT (pcs)</th><th>Net (pcs)</th><th>IN (ct)</th><th>OUT (ct)</th><th>Net (ct)</th><th>Status</th></tr></thead>
+          <thead><tr><th>Shape</th><th>Size</th><th>IN (pcs)</th><th>OUT (pcs)</th><th>Net (pcs)</th><th>IN (ct)</th><th>OUT (ct)</th><th>Net (ct)</th><th>Status</th></tr></thead>
           <tbody id="stock-tbody"></tbody>
           <tfoot id="stock-tfoot"></tfoot>
         </table>
@@ -464,6 +465,19 @@
 
   <!-- SETTINGS -->
   <div id="tab-settings" style="display:none">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Manage shapes</span></div>
+      <div class="card-body">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Add or remove diamond shapes that appear in the entry form. These are saved automatically.</p>
+        <div class="btn-row" style="margin-bottom:12px;">
+          <input type="text" id="new-shape-input" placeholder="Type new shape name..." style="padding:8px 11px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;width:220px;"
+            onkeydown="if(event.key==='Enter')addShape()">
+          <button class="btn primary" onclick="addShape()">+ Add</button>
+        </div>
+        <div class="size-chips" id="shape-chips"></div>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-header"><span class="card-title">Manage size / grade list</span></div>
       <div class="card-body">
@@ -524,19 +538,66 @@ const LS = {
   set: (k,v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
 };
 
-let entries = LS.get('dl_entries') || [];
-let sizes   = LS.get('dl_sizes')   || [];
-let driveConfig = LS.get('dl_drive') || { clientId: '', token: '' };
+const DEFAULT_SHAPES = ['ROUND','PRINCESS','PEAR','OVAL','MARQUISE','HEART','CUSHION','EMERALD','TRILLION','RADIANT','LOZENGE','BAGUETTE'];
+let entries     = LS.get('dl_entries') || [];
+let sizes       = LS.get('dl_sizes')   || [];
+let shapes      = LS.get('dl_shapes')  || [...DEFAULT_SHAPES];
+let driveConfig = LS.get('dl_drive')   || { clientId: '', token: '' };
 let gapi_loaded = false;
+
+// Migrate old entries: if entry has no shape field, try to parse from size
+function migrateEntries() {
+  let changed = false;
+  entries.forEach(e => {
+    if(!e.shape) {
+      const s = (e.size||'').toUpperCase().trim();
+      // Try to detect shape prefix
+      const found = DEFAULT_SHAPES.find(sh => s.startsWith(sh));
+      if(found) {
+        e.shape = found;
+        e.size  = s.replace(found,'').trim();
+      } else {
+        e.shape = '';
+        // keep e.size as-is
+      }
+      changed = true;
+    }
+  });
+  if(changed) save();
+}
 
 function save() {
   LS.set('dl_entries', entries);
   LS.set('dl_sizes', sizes);
+  LS.set('dl_shapes', shapes);
   LS.set('dl_drive', driveConfig);
 }
 
 // ── Utils ──────────────────────────────────────────────────────────────────
-const fmt = n => parseFloat(n||0).toFixed(2);
+const fmt    = n => parseFloat(n||0).toFixed(2);
+const fmt3   = n => parseFloat(n||0).toFixed(3);
+const fmtMM  = n => parseFloat(n||0).toFixed(2);
+
+function buildSizeLabel(shape, length, width) {
+  shape  = (shape||'').toUpperCase().trim();
+  length = fmtMM(length);
+  width  = fmtMM(width);
+  if(!shape) return length;
+  if(shape === 'ROUND') return shape + ' ' + length;
+  if(width && parseFloat(width) > 0) return shape + ' ' + length + 'X' + width;
+  return shape + ' ' + length;
+}
+
+function parseShapeSize(combined) {
+  // Split a stored "SHAPE SIZE" or "SHAPE LXW" back into parts
+  const s = (combined||'').toUpperCase().trim();
+  const found = ['ROUND','PRINCESS','PEAR','OVAL','MARQUISE','HEART','CUSHION','EMERALD','TRILLION','RADIANT','LOZENGE','BAGUETTE'].find(sh => s.startsWith(sh+' ') || s===sh);
+  if(found) {
+    const rest = s.slice(found.length).trim();
+    return { shape: found, size: rest };
+  }
+  return { shape: '', size: s };
+}
 const fmtDate = d => { if(!d) return '—'; const p=d.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; };
 const today = () => new Date().toISOString().slice(0,10);
 
@@ -567,19 +628,42 @@ function populateSizeDatalist() {
 
 function populateSizeFilter() {
   const sel = document.getElementById('filter-size');
-  const cur = sel.value;
-  sel.innerHTML = '<option value="">All sizes</option>' +
-    sizes.map(s => `<option value="${s}" ${s===cur?'selected':''}>${s}</option>`).join('');
-  // also add sizes from entries not yet in list
-  const fromEntries = [...new Set(entries.map(e=>e.size?e.size.toUpperCase():null).filter(Boolean))];
-  fromEntries.forEach(s => {
-    if(!sizes.some(x=>x.toUpperCase()===s)) {
-      const o = document.createElement('option');
-      o.value = s; o.textContent = s;
-      if(s===cur) o.selected=true;
-      sel.appendChild(o);
+  const cur = sel ? sel.value : '';
+  if(sel) {
+    sel.innerHTML = '<option value="">All sizes</option>' +
+      sizes.map(s => `<option value="${s}" ${s===cur?'selected':''}>${s}</option>`).join('');
+    const fromEntries = [...new Set(entries.map(e=>e.size?e.size.toUpperCase():null).filter(Boolean))];
+    fromEntries.forEach(s => {
+      if(!sizes.some(x=>x.toUpperCase()===s)) {
+        const o = document.createElement('option'); o.value=s; o.textContent=s;
+        if(s===cur) o.selected=true; sel.appendChild(o);
+      }
+    });
+  }
+  // Populate shape filter
+  const shSel = document.getElementById('filter-shape');
+  if(shSel) {
+    const curSh = shSel.value;
+    shSel.innerHTML = '<option value="">All shapes</option>' +
+      shapes.map(s=>`<option value="${s}" ${s===curSh?'selected':''}>${s}</option>`).join('');
+  }
+  // Populate entry form shape dropdown
+  const fShape = document.getElementById('f-shape');
+  if(fShape) {
+    const curFs = fShape.value;
+    const stockMap = getStockMap();
+    const inStockShapes = shapes.filter(s => {
+      const row = stockMap.find(r=>r.size.toUpperCase().startsWith(s+' ')||r.size.toUpperCase()===s);
+      return row && (row.inP-row.outP)>0;
+    });
+    const outStockShapes = shapes.filter(s=>!inStockShapes.includes(s));
+    let opts = '<option value="">Select shape...</option>';
+    if(inStockShapes.length) opts += inStockShapes.map(s=>`<option value="${s}" ${s===curFs?'selected':''}>${s}</option>`).join('');
+    if(outStockShapes.length) {
+      opts += `<optgroup label="── Out of Stock ──">` + outStockShapes.map(s=>`<option value="${s}" ${s===curFs?'selected':''}>${s}</option>`).join('') + '</optgroup>';
     }
-  });
+    fShape.innerHTML = opts;
+  }
 }
 
 function addSize() {
@@ -602,6 +686,39 @@ function renderSizeChips() {
       <button onclick="openEditSizeModal('${s.replace(/'/g,"\\'")}') " title="Rename" style="font-size:12px;margin-right:2px;">✎</button>
       <button onclick="removeSize('${s.replace(/'/g,"\\'")}')">×</button>
     </div>`).join('');
+}
+
+function renderShapeChips() {
+  const container = document.getElementById('shape-chips');
+  if(!container) return;
+  if(!shapes.length) { container.innerHTML = '<span style="font-size:13px;color:var(--text3);">No shapes added yet.</span>'; return; }
+  container.innerHTML = shapes.map(s => `
+    <div class="size-chip">${s}
+      <button onclick="removeShape('${s.replace(/'/g,"\\'")}')">×</button>
+    </div>`).join('');
+}
+
+function addShape() {
+  const input = document.getElementById('new-shape-input');
+  const val = input.value.trim().toUpperCase();
+  if(!val) return;
+  if(!shapes.some(s=>s.toUpperCase()===val)) { shapes.push(val); save(); renderShapeChips(); populateSizeFilter(); }
+  input.value = '';
+}
+
+function removeShape(s) {
+  if(!confirm(`Remove shape "${s}"? This does not affect existing entries.`)) return;
+  shapes = shapes.filter(x=>x!==s); save(); renderShapeChips(); populateSizeFilter();
+}
+
+function toggleOutOfStock() {
+  const el  = document.getElementById('oos-cards');
+  const btn = document.getElementById('oos-toggle');
+  if(!el||!btn) return;
+  const open = el.style.display==='block';
+  el.style.display  = open ? 'none' : 'block';
+  const count = el.querySelectorAll('.stock-card').length;
+  btn.textContent = open ? `▶ Show out of stock (${count})` : `▼ Hide out of stock`;
 }
 
 // Auto-save size when a new one is typed in entry form
@@ -634,12 +751,20 @@ function addEntry() {
 }
 
 function clearForm(keepMsg) {
-  ['f-size','f-pieces','f-carats','f-ref','f-notes'].forEach(id => document.getElementById(id).value='');
-  document.getElementById('f-date').value = today();
+  ['f-length','f-width','f-pieces','f-carats','f-ref','f-notes'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('f-date').value  = today();
   const lastType = LS.get('dl_last_type') || 'IN';
-  document.getElementById('f-type').value = lastType;
+  document.getElementById('f-type').value  = lastType;
+  document.getElementById('f-size-stock-preview') && (document.getElementById('size-stock-preview').style.display='none');
   if(!keepMsg) document.getElementById('form-msg').textContent='';
   renderTodayEntries();
+}
+
+function onShapeChange() {
+  const shape = document.getElementById('f-shape').value.toUpperCase();
+  const widthWrap = document.getElementById('f-width-wrap');
+  widthWrap.style.display = (shape==='ROUND') ? 'none' : 'flex';
+  updateSizePreview();
 }
 
 function renderTodayEntries() {
@@ -651,14 +776,17 @@ function renderTodayEntries() {
     tbody.innerHTML = '<tr><td colspan="6" class="empty">No entries today yet</td></tr>';
     return;
   }
-  tbody.innerHTML = todayList.map(e => `<tr>
+  tbody.innerHTML = todayList.map(e => {
+    const ps=parseShapeSize(e.size);const sh=e.shape||ps.shape;const sz=e.shape?e.size:ps.size;
+    return `<tr>
     <td><span class="badge ${e.type.toLowerCase()}">${e.type}</span></td>
-    <td>${e.size||'—'}</td>
+    <td>${sh||'—'}</td>
+    <td>${sz||'—'}</td>
     <td class="mono">${e.pieces}</td>
-    <td class="mono">${fmt(e.carats)}</td>
+    <td class="mono">${fmt3(e.carats)}</td>
     <td>${e.ref||'—'}</td>
     <td>${e.notes||'—'}</td>
-  </tr>`).join('');
+  </tr>`;}).join('');
 }
 
 let syncTimer = null;
@@ -729,18 +857,22 @@ function renderDashboard() {
 
 // ── Ledger ─────────────────────────────────────────────────────────────────
 function getFiltered() {
-  const type   = document.getElementById('filter-type').value;
-  const size   = document.getElementById('filter-size').value;
-  const from   = document.getElementById('filter-from').value;
-  const to     = document.getElementById('filter-to').value;
-  const search = (document.getElementById('filter-search')?.value||'').toLowerCase().trim();
+  const type      = document.getElementById('filter-type').value;
+  const size      = document.getElementById('filter-size').value;
+  const filterSh  = (document.getElementById('filter-shape')?.value||'').toUpperCase();
+  const from      = document.getElementById('filter-from').value;
+  const to        = document.getElementById('filter-to').value;
+  const search    = (document.getElementById('filter-search')?.value||'').toLowerCase().trim();
   return entries.filter(e => {
+    const ps = parseShapeSize(e.size);
+    const esh = (e.shape||ps.shape||'').toUpperCase();
     if(type && e.type!==type) return false;
+    if(filterSh && esh!==filterSh) return false;
     if(size && (e.size||'').toUpperCase()!==size.toUpperCase()) return false;
     if(from && e.date<from)   return false;
     if(to   && e.date>to)     return false;
     if(search) {
-      const hay = [e.size,e.ref,e.notes,e.type,fmtDate(e.date)].join(' ').toLowerCase();
+      const hay = [e.shape,e.size,e.ref,e.notes,e.type,fmtDate(e.date)].join(' ').toLowerCase();
       if(!hay.includes(search)) return false;
     }
     return true;
@@ -756,24 +888,27 @@ function renderLedger() {
     tbody.innerHTML='<tr><td colspan="9" class="empty">No matching entries</td></tr>';
     tfoot.innerHTML=''; footer.textContent=''; return;
   }
-  tbody.innerHTML = filtered.map((e,i) => `<tr>
+  tbody.innerHTML = filtered.map((e,i) => {
+    const ps=parseShapeSize(e.size);const sh=e.shape||ps.shape;const sz=e.shape?e.size:ps.size;
+    return `<tr>
     <td class="mono" style="color:var(--text3)">${filtered.length-i}</td>
     <td>${fmtDate(e.date)}</td>
     <td><span class="badge ${e.type.toLowerCase()}">${e.type}</span></td>
-    <td>${e.size||'—'}</td>
+    <td>${sh||'—'}</td>
+    <td>${sz||'—'}</td>
     <td class="mono">${e.pieces}</td>
-    <td class="mono">${fmt(e.carats)}</td>
+    <td class="mono">${fmt3(e.carats)}</td>
     <td>${e.ref||'—'}</td>
     <td>${e.notes||'—'}</td>
     <td><button class="btn sm danger" onclick="deleteEntry(${e.id})" title="Delete">✕</button></td>
-  </tr>`).join('');
+  </tr>`;}).join('');
   const totIN_P  = filtered.filter(e=>e.type==='IN').reduce((a,e)=>a+e.pieces,0);
   const totOUT_P = filtered.filter(e=>e.type==='OUT').reduce((a,e)=>a+e.pieces,0);
   const totIN_C  = filtered.filter(e=>e.type==='IN').reduce((a,e)=>a+e.carats,0);
   const totOUT_C = filtered.filter(e=>e.type==='OUT').reduce((a,e)=>a+e.carats,0);
   tfoot.innerHTML = `<tr>
     <td colspan="2">Totals (${filtered.length} entries)</td>
-    <td></td><td></td>
+    <td></td><td></td><td></td>
     <td>IN: ${totIN_P} / OUT: ${totOUT_P}</td>
     <td>IN: ${fmt(totIN_C)} / OUT: ${fmt(totOUT_C)}</td>
     <td colspan="3">Net: ${totIN_P-totOUT_P} pcs · ${fmt(totIN_C-totOUT_C)} ct</td>
@@ -782,7 +917,7 @@ function renderLedger() {
 }
 
 function clearFilters() {
-  ['filter-search','filter-type','filter-size','filter-from','filter-to'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  ['filter-search','filter-shape','filter-type','filter-size','filter-from','filter-to'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
   renderLedger();
 }
 
@@ -836,12 +971,14 @@ function renderStock() {
   tbody.innerHTML = rows.map(r => {
     const np=r.inP-r.outP, nc=r.inC-r.outC;
     const cl = np>0?'positive':np<0?'negative':'';
+    const ps = parseShapeSize(r.size);
     return `<tr>
-      <td>${r.size}</td>
+      <td>${ps.shape||'—'}</td>
+      <td>${ps.size||r.size}</td>
       <td class="mono">${r.inP}</td><td class="mono">${r.outP}</td>
       <td class="mono ${cl}">${np}</td>
-      <td class="mono">${fmt(r.inC)}</td><td class="mono">${fmt(r.outC)}</td>
-      <td class="mono ${cl}">${fmt(nc)}</td>
+      <td class="mono">${fmt3(r.inC)}</td><td class="mono">${fmt3(r.outC)}</td>
+      <td class="mono ${cl}">${fmt3(nc)}</td>
       <td><span class="badge ${np>0?'in':'out'}">${np>0?'In Stock':'Deficit'}</span></td>
     </tr>`;
   }).join('');
@@ -849,9 +986,9 @@ function renderStock() {
   const tIP=rows.reduce((a,r)=>a+r.inP,0), tOP=rows.reduce((a,r)=>a+r.outP,0);
   const tIC=rows.reduce((a,r)=>a+r.inC,0), tOC=rows.reduce((a,r)=>a+r.outC,0);
   tfoot.innerHTML=`<tr>
-    <td>TOTAL</td>
+    <td colspan="2">TOTAL</td>
     <td>${tIP}</td><td>${tOP}</td><td class="${tIP-tOP>0?'positive':'negative'}">${tIP-tOP}</td>
-    <td>${fmt(tIC)}</td><td>${fmt(tOC)}</td><td>${fmt(tIC-tOC)}</td><td></td>
+    <td>${fmt3(tIC)}</td><td>${fmt3(tOC)}</td><td>${fmt3(tIC-tOC)}</td><td></td>
   </tr>`;
 }
 
@@ -866,8 +1003,9 @@ function dlFile(content, filename, type) {
 }
 
 function exportCSV() {
-  const h=['Date','Type','Size/Grade','Pieces','Carats','Ref','Notes'];
-  const rows=entries.map(e=>[fmtDate(e.date),e.type,e.size||'',e.pieces,fmt(e.carats),e.ref||'',e.notes||'']);
+  const h=['Date','Type','Shape','Size','Pieces','Carats','Ref','Notes'];
+  const ps_=e=>parseShapeSize(e.size);
+  const rows=entries.map(e=>{const ps=ps_(e);return[fmtDate(e.date),e.type,e.shape||ps.shape||'',e.shape?e.size:ps.size||'',e.pieces,fmt3(e.carats),e.ref||'',e.notes||''];});
   dlFile(toCSV(rows,h),'diamond_ledger_full.csv','text/csv');
 }
 
@@ -877,7 +1015,7 @@ function exportFilteredCSV() {
   const to   = document.getElementById('filter-to').value;
   const suffix = (from||to) ? `_${from||'start'}_to_${to||'end'}` : '_filtered';
   const h=['Date','Type','Size/Grade','Pieces','Carats','Ref','Notes'];
-  const rows=filtered.map(e=>[fmtDate(e.date),e.type,e.size||'',e.pieces,fmt(e.carats),e.ref||'',e.notes||'']);
+  const rows=filtered.map(e=>{const ps=parseShapeSize(e.size);return[fmtDate(e.date),e.type,e.shape||ps.shape||'',e.shape?e.size:ps.size||'',e.pieces,fmt3(e.carats),e.ref||'',e.notes||''];});
   dlFile(toCSV(rows,h),`diamond_ledger${suffix}.csv`,'text/csv');
 }
 
@@ -902,8 +1040,10 @@ function importJSON(event) {
       if(data.entries) {
         if(!confirm(`Import ${data.entries.length} entries? This will REPLACE your current data.`)) return;
         entries = data.entries;
-        if(data.sizes) sizes = data.sizes;
-        save(); populateSizeDatalist(); renderDashboard(); renderSizeChips();
+        if(data.sizes)  sizes  = data.sizes;
+        if(data.shapes) shapes = data.shapes;
+        migrateEntries();
+        save(); populateSizeDatalist(); populateSizeFilter(); renderDashboard(); renderSizeChips(); renderShapeChips();
         showNotice('Data imported successfully! Pushing to Drive...','success');
         // Upload local data to Drive immediately — do NOT pull from Drive
         if(driveConfig.token) {
@@ -1036,20 +1176,21 @@ async function syncDrive() {
         const remote = JSON.parse(text);
         const remoteEntries = Array.isArray(remote) ? remote : (remote.entries||[]);
         const remoteSizes   = remote.sizes||[];
-        // Merge: combine by id, remote wins for conflicts
+        const remoteShapes  = remote.shapes||[];
         const localMap = {};
         entries.forEach(e=>localMap[e.id]=e);
         remoteEntries.forEach(e=>localMap[e.id]=e);
         entries = Object.values(localMap).sort((a,b)=>b.date.localeCompare(a.date)||(b.id-a.id));
-        const allSizes = [...new Set([...sizes,...remoteSizes])];
-        sizes = allSizes;
-        save(); populateSizeDatalist();
+        sizes  = [...new Set([...sizes,...remoteSizes])];
+        shapes = [...new Set([...shapes,...remoteShapes])];
+        migrateEntries();
+        save(); populateSizeDatalist(); populateSizeFilter();
       } catch(e){/* use local */}
       // Upload merged
       await uploadDriveFile(fileId);
     }
     setDriveStatus('ok','Synced');
-    renderDashboard(); renderLedger(); renderStock(); renderSizeChips();
+    renderDashboard(); renderLedger(); renderStock(); renderSizeChips(); renderShapeChips();
     showNotice('Synced with Google Drive!','success');
   } catch(err) {
     setDriveStatus('err','Error'); showNotice('Drive sync failed: '+err.message,'err');
@@ -1057,7 +1198,7 @@ async function syncDrive() {
 }
 
 async function uploadDriveFile(fileId) {
-  const content = JSON.stringify({entries,sizes,savedAt:new Date().toISOString()},null,2);
+  const content = JSON.stringify({entries,sizes,shapes,savedAt:new Date().toISOString()},null,2);
   const blob = new Blob([content],{type:'application/json'});
   const meta = JSON.stringify({name:DRIVE_FILE,mimeType:'application/json'});
   const form = new FormData();
@@ -1118,19 +1259,24 @@ function saveEditSize() {
 
 // ── Size stock preview on New Entry ───────────────────────────────────────
 function updateSizePreview() {
-  const val = document.getElementById('f-size').value.trim().toUpperCase();
+  const shape  = (document.getElementById('f-shape')?.value||'').toUpperCase().trim();
+  const length = parseFloat(document.getElementById('f-length')?.value||0);
+  const width  = shape==='ROUND' ? 0 : parseFloat(document.getElementById('f-width')?.value||0);
   const preview = document.getElementById('size-stock-preview');
   const nameEl  = document.getElementById('preview-size-name');
   const valEl   = document.getElementById('preview-stock-val');
-  if(!val) { preview.style.display='none'; return; }
-  const map = getStockMap();
-  const row = map.find(r=>r.size.toUpperCase()===val);
+  if(!shape || !length) { if(preview) preview.style.display='none'; return; }
+  const label = buildSizeLabel(shape, length, width);
+  const map  = getStockMap();
+  const row  = map.find(r=>r.size.toUpperCase()===label.toUpperCase());
   const netP = row ? row.inP - row.outP : 0;
   const netC = row ? row.inC - row.outC : 0;
-  nameEl.textContent = val;
-  valEl.textContent  = `${netP} pcs · ${parseFloat(netC).toFixed(2)} ct`;
-  valEl.style.color  = netP>0 ? 'var(--green)' : netP<0 ? 'var(--red)' : 'var(--text3)';
-  preview.style.display='flex';
+  if(nameEl) nameEl.textContent = label;
+  if(valEl) {
+    valEl.textContent = `${netP} pcs · ${parseFloat(netC).toFixed(3)} ct`;
+    valEl.style.color = netP>0 ? 'var(--green)' : netP<0 ? 'var(--red)' : 'var(--text3)';
+  }
+  if(preview) preview.style.display='flex';
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
@@ -1174,11 +1320,17 @@ if(sessionStorage.getItem('dl_auth')==='1') {
 }
 
 function initApp() {
+  migrateEntries();
   document.getElementById('f-date').value = today();
   const lastType = LS.get('dl_last_type') || 'IN';
   document.getElementById('f-type').value = lastType;
+  // Set width field hidden by default (round is default)
+  const widthWrap = document.getElementById('f-width-wrap');
+  if(widthWrap) widthWrap.style.display='none';
   populateSizeDatalist();
+  populateSizeFilter();
   renderDashboard();
+  renderShapeChips();
   if(driveConfig.clientId) setDriveStatus('','Configured (not synced)');
 }
 
