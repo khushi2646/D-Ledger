@@ -5,318 +5,236 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Diamond Ledger</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap');
+:root {
+  --brand: #456158;
+  --brand-light: #e8efed;
+  --brand-dark: #2e4139;
+  --bg: #f5f4f0;
+  --surface: #ffffff;
+  --surface2: #f0efe9;
+  --border: #e2e0d8;
+  --border2: #c8c6bc;
+  --text: #1a1916;
+  --text2: #5c5b55;
+  --text3: #9b9a94;
+  --green: #2d6a4f;
+  --green-bg: #eaf4ef;
+  --red: #9b2335;
+  --red-bg: #fbedef;
+  --amber: #7a4f00;
+  --amber-bg: #fef7e6;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh;}
 
-  :root {
-    --bg: #f7f6f2;
-    --surface: #ffffff;
-    --surface2: #f0efe9;
-    --border: #e2e0d8;
-    --border2: #cccabe;
-    --text: #1a1916;
-    --text2: #6b6960;
-    --text3: #9b9a94;
-    --green: #2d6a4f;
-    --green-bg: #eaf4ef;
-    --red: #9b2335;
-    --red-bg: #fbedef;
-    --amber: #7a4f00;
-    --amber-bg: #fef7e6;
-    --blue: #1a4a7a;
-    --blue-bg: #eaf2fb;
-    --radius: 10px;
-    --radius-sm: 6px;
-    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  }
+/* ── Lock Screen ── */
+#lock-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999;}
+.lock-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:44px 52px;width:100%;max-width:380px;margin:20px;box-shadow:var(--shadow-md);display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;}
+.lock-logo{width:52px;height:52px;background:var(--brand);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;}
+.lock-title{font-size:22px;font-weight:600;color:var(--text);letter-spacing:-0.3px;}
+.lock-sub{font-size:13px;color:var(--text3);margin-top:-10px;}
+.lock-input-wrap{width:100%;position:relative;}
+.lock-input{width:100%;padding:10px 40px 10px 14px;font-size:14px;font-family:inherit;border:1.5px solid var(--border);border-radius:var(--radius-sm);outline:none;background:var(--surface);color:var(--text);transition:border-color 0.15s;}
+.lock-input:focus{border-color:var(--brand);}
+.lock-input.err{border-color:var(--red);animation:shake 0.35s ease;}
+.lock-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:15px;padding:0;}
+.lock-btn{width:100%;padding:11px;font-size:14px;font-weight:600;font-family:inherit;background:var(--brand);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;transition:opacity 0.15s;}
+.lock-btn:hover{opacity:0.88;}
+.lock-err{font-size:12px;color:var(--red);min-height:16px;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+/* ── Shell ── */
+.shell{max-width:1140px;margin:0 auto;padding:0 20px 60px;}
 
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    font-size: 14px;
-    line-height: 1.5;
-    min-height: 100vh;
-  }
+/* ── Topbar ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 0 16px;border-bottom:1px solid var(--border);margin-bottom:26px;flex-wrap:wrap;gap:12px;}
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.app-logo{width:38px;height:38px;background:var(--brand);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.app-title{font-size:18px;font-weight:600;letter-spacing:-0.3px;color:var(--text);}
+.app-sub{font-size:12px;color:var(--text3);margin-top:1px;}
+.topbar-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 
-  /* Layout */
-  .shell { max-width: 1100px; margin: 0 auto; padding: 0 20px 60px; }
+/* ── Drive Status ── */
+.drive-bar{display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 12px;font-size:12px;color:var(--text2);cursor:pointer;transition:background 0.15s;}
+.drive-bar:hover{background:var(--surface2);}
+.drive-dot{width:7px;height:7px;border-radius:50%;background:#ccc;flex-shrink:0;}
+.drive-dot.ok{background:var(--brand);}
+.drive-dot.err{background:var(--red);}
+.drive-dot.busy{background:var(--amber);animation:blink 0.8s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
 
-  /* Header */
-  .topbar {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 18px 0 16px; border-bottom: 1px solid var(--border);
-    margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
-  }
-  .topbar-left { display: flex; align-items: center; gap: 12px; }
-  .logo-mark {
-    width: 38px; height: 38px; background: var(--text); border-radius: 10px;
-    display: flex; align-items: center; justify-content: center; font-size: 18px;
-    flex-shrink: 0;
-  }
-  .app-title { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
-  .app-sub { font-size: 12px; color: var(--text3); margin-top: 1px; }
+/* ── Drive Panel ── */
+.drive-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 22px;margin-bottom:20px;display:none;}
+.drive-panel.open{display:block;}
+.drive-panel h3{font-size:14px;font-weight:600;margin-bottom:10px;}
+.drive-panel p{font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.6;}
+.drive-panel ol{font-size:13px;color:var(--text2);padding-left:18px;line-height:1.9;margin-bottom:14px;}
+.drive-warn{background:var(--amber-bg);color:var(--amber);border:1px solid #f0d89a;border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;margin-bottom:14px;}
 
-  /* Drive status */
-  .drive-status {
-    display: flex; align-items: center; gap: 8px;
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius-sm); padding: 6px 12px; font-size: 12px; color: var(--text2);
-    cursor: pointer; transition: background 0.15s;
-  }
-  .drive-status:hover { background: var(--surface2); }
-  .drive-dot { width: 7px; height: 7px; border-radius: 50%; background: #ccc; flex-shrink: 0; }
-  .drive-dot.ok { background: var(--green); }
-  .drive-dot.err { background: var(--red); }
-  .drive-dot.busy { background: var(--amber); animation: blink 0.8s infinite; }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+/* ── Tabs ── */
+.tabs{display:flex;gap:2px;margin-bottom:26px;background:var(--surface2);border-radius:var(--radius);padding:4px;border:1px solid var(--border);width:fit-content;}
+.tab{padding:7px 20px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:none;color:var(--text2);border-radius:var(--radius-sm);transition:all 0.15s;font-family:inherit;}
+.tab.active{background:var(--surface);color:var(--brand);box-shadow:var(--shadow);font-weight:600;}
+.tab:hover:not(.active){color:var(--text);}
 
-  /* Drive config panel */
-  .drive-panel {
-    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 16px 20px; margin-bottom: 20px; display: none;
-  }
-  .drive-panel.open { display: block; }
-  .drive-panel h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
-  .drive-panel p { font-size: 13px; color: var(--text2); margin-bottom: 12px; line-height: 1.6; }
-  .drive-panel ol { font-size: 13px; color: var(--text2); padding-left: 18px; line-height: 1.9; margin-bottom: 14px; }
-  .drive-panel a { color: var(--blue); }
-  .input-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .input-row input { flex: 1; min-width: 200px; }
+/* ── Stats ── */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);}
+.stat-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.stat-val{font-size:24px;font-weight:600;letter-spacing:-0.5px;font-family:'DM Mono',monospace;}
+.stat-val.pos{color:var(--brand);}
+.stat-val.neg{color:var(--red);}
+.stat-sub{font-size:11px;color:var(--text3);margin-top:3px;}
 
-  /* Tabs */
-  .tabs { display: flex; gap: 2px; margin-bottom: 24px; background: var(--surface2); border-radius: var(--radius); padding: 4px; border: 1px solid var(--border); width: fit-content; }
-  .tab {
-    padding: 7px 18px; font-size: 13px; font-weight: 500; cursor: pointer;
-    border: none; background: none; color: var(--text2); border-radius: var(--radius-sm);
-    transition: all 0.15s; font-family: inherit;
-  }
-  .tab.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
-  .tab:hover:not(.active) { color: var(--text); }
+/* ── Card ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px;overflow:hidden;}
+.card-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.card-title{font-size:14px;font-weight:600;color:var(--text);}
+.card-body{padding:20px;}
 
-  /* Stats grid */
-  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px; }
-  .stat-card {
-    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 14px 16px; box-shadow: var(--shadow);
-  }
-  .stat-label { font-size: 11px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
-  .stat-val { font-size: 24px; font-weight: 600; letter-spacing: -0.5px; font-family: 'DM Mono', monospace; }
-  .stat-val.positive { color: var(--green); }
-  .stat-val.negative { color: var(--red); }
-  .stat-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
+/* ── Form ── */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px;margin-bottom:16px;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;}
+.field input,.field select{padding:9px 11px;font-size:14px;font-family:inherit;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);outline:none;width:100%;transition:border-color 0.15s;}
+.field input:focus,.field select:focus{border-color:var(--brand);}
+.field input[list]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239b9a94' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;}
 
-  /* Card */
-  .card {
-    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-    box-shadow: var(--shadow); margin-bottom: 20px; overflow: hidden;
-  }
-  .card-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
-  .card-title { font-size: 14px; font-weight: 600; }
-  .card-body { padding: 20px; }
+/* ── Buttons ── */
+.btn{padding:8px 16px;font-size:13px;font-weight:500;font-family:inherit;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;background:var(--surface);color:var(--text);display:inline-flex;align-items:center;gap:6px;transition:all 0.15s;white-space:nowrap;}
+.btn:hover{background:var(--surface2);}
+.btn:active{transform:scale(0.98);}
+.btn.primary{background:var(--brand);color:#fff;border-color:var(--brand);}
+.btn.primary:hover{background:var(--brand-dark);}
+.btn.danger{color:var(--red);border-color:#f0c0c8;}
+.btn.danger:hover{background:var(--red-bg);}
+.btn.sm{padding:5px 10px;font-size:12px;}
+.btn:disabled{opacity:0.4;cursor:not-allowed;}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
 
-  /* Form */
-  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 16px; }
-  .field { display: flex; flex-direction: column; gap: 5px; }
-  .field label { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; }
-  .field input, .field select {
-    padding: 9px 11px; font-size: 14px; font-family: inherit;
-    border: 1px solid var(--border); border-radius: var(--radius-sm);
-    background: var(--surface); color: var(--text); outline: none; width: 100%;
-    transition: border-color 0.15s;
-  }
-  .field input:focus, .field select:focus { border-color: var(--text2); }
-  .field input[list] { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239b9a94' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+/* ── Badges ── */
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.02em;}
+.badge.in{background:var(--brand-light);color:var(--brand);}
+.badge.out{background:var(--red-bg);color:var(--red);}
 
-  /* Buttons */
-  .btn {
-    padding: 9px 18px; font-size: 13px; font-weight: 500; font-family: inherit;
-    border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer;
-    background: var(--surface); color: var(--text); display: inline-flex; align-items: center;
-    gap: 6px; transition: all 0.15s; white-space: nowrap;
-  }
-  .btn:hover { background: var(--surface2); }
-  .btn:active { transform: scale(0.98); }
-  .btn.primary { background: var(--text); color: #fff; border-color: var(--text); }
-  .btn.primary:hover { background: #333; }
-  .btn.danger { color: var(--red); border-color: #f0c0c8; }
-  .btn.danger:hover { background: var(--red-bg); }
-  .btn.sm { padding: 5px 10px; font-size: 12px; }
-  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+/* ── Table ── */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{text-align:left;padding:10px 14px;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap;}
+tbody td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text);}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:var(--bg);}
+tfoot td{padding:10px 14px;font-weight:600;background:var(--surface2);border-top:1px solid var(--border2);font-family:'DM Mono',monospace;font-size:12px;}
+.mono{font-family:'DM Mono',monospace;}
+.pos{color:var(--brand);}
+.neg{color:var(--red);}
 
-  /* Badges */
-  .badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; letter-spacing: 0.02em; }
-  .badge.in { background: var(--green-bg); color: var(--green); }
-  .badge.out { background: var(--red-bg); color: var(--red); }
+/* ── Filters ── */
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
+.filter-row input,.filter-row select{padding:7px 10px;font-size:13px;font-family:inherit;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);outline:none;transition:border-color 0.15s;}
+.filter-row input:focus,.filter-row select:focus{border-color:var(--brand);}
 
-  /* Table */
-  .table-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  thead th {
-    text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 600;
-    color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em;
-    border-bottom: 1px solid var(--border); background: var(--surface2); white-space: nowrap;
-  }
-  tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text); }
-  tbody tr:last-child td { border-bottom: none; }
-  tbody tr:hover td { background: var(--bg); }
-  tfoot td { padding: 10px 14px; font-weight: 600; background: var(--surface2); border-top: 1px solid var(--border2); font-family: 'DM Mono', monospace; font-size: 12px; }
-  .mono { font-family: 'DM Mono', monospace; }
+/* ── Notice ── */
+.notice{padding:12px 16px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:16px;display:flex;align-items:flex-start;gap:10px;line-height:1.5;}
+.notice.info{background:var(--brand-light);color:var(--brand-dark);border:1px solid #b8cec8;}
+.notice.success{background:var(--green-bg);color:var(--green);border:1px solid #a8d8c0;}
+.notice.warn{background:var(--amber-bg);color:var(--amber);border:1px solid #f0d89a;}
+.notice.err{background:var(--red-bg);color:var(--red);border:1px solid #f0b8c0;}
 
-  /* Filter row */
-  .filter-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
-  .filter-row input, .filter-row select {
-    padding: 7px 10px; font-size: 13px; font-family: inherit;
-    border: 1px solid var(--border); border-radius: var(--radius-sm);
-    background: var(--surface); color: var(--text); outline: none;
-  }
-  .filter-row input:focus, .filter-row select:focus { border-color: var(--text2); }
+/* ── Stock Cards ── */
+.stock-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;margin-bottom:20px;}
+.stock-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);}
+.stock-card-title{font-size:14px;font-weight:600;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border);color:var(--text);}
+.stock-card-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;color:var(--text2);}
+.stock-card-row span:last-child{font-family:'DM Mono',monospace;font-weight:500;color:var(--text);}
+.stock-card-net{display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);}
+.stock-card-net-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);}
+.stock-card-net-ct{font-size:11px;color:var(--text3);margin-top:2px;}
+.stock-card-net-val{font-size:20px;font-weight:600;font-family:'DM Mono',monospace;}
 
-  /* Notice */
-  .notice {
-    padding: 12px 16px; border-radius: var(--radius-sm); font-size: 13px;
-    margin-bottom: 16px; display: flex; align-items: flex-start; gap: 10px; line-height: 1.5;
-  }
-  .notice.info { background: var(--blue-bg); color: var(--blue); border: 1px solid #b8d4f0; }
-  .notice.success { background: var(--green-bg); color: var(--green); border: 1px solid #a8d8c0; }
-  .notice.warn { background: var(--amber-bg); color: var(--amber); border: 1px solid #f0d89a; }
-  .notice.err { background: var(--red-bg); color: var(--red); border: 1px solid #f0b8c0; }
+/* ── Size Preview ── */
+.size-preview{display:none;margin-top:12px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;align-items:center;justify-content:space-between;}
 
-  /* Stock cards */
-  .stock-summary { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin-bottom: 20px; }
-  .stock-card {
-    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 14px 16px; box-shadow: var(--shadow);
-  }
-  .stock-card-size { font-size: 15px; font-weight: 600; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
-  .stock-card-row { display: flex; justify-content: space-between; font-size: 12px; padding: 3px 0; color: var(--text2); }
-  .stock-card-row span:last-child { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--text); }
-  .stock-card-net { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
-  .stock-card-net-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text3); }
-  .stock-card-net-val { font-size: 18px; font-weight: 600; font-family: 'DM Mono', monospace; }
+/* ── Size Chips ── */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;font-size:12px;font-weight:500;}
+.chip button{background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;line-height:1;padding:0;display:flex;align-items:center;}
+.chip button:hover{color:var(--red);}
+.chip .rename-btn{font-size:11px;color:var(--text3);}
+.chip .rename-btn:hover{color:var(--brand);}
+.section-sep{height:1px;background:var(--border);margin:20px 0;}
+.empty{text-align:center;padding:40px;color:var(--text3);font-size:13px;}
+.form-msg{font-size:13px;margin-top:10px;min-height:20px;}
 
-  .empty { text-align: center; padding: 40px; color: var(--text3); font-size: 13px; }
-  .section-sep { height: 1px; background: var(--border); margin: 24px 0; }
-
-  #form-msg { font-size: 13px; margin-top: 10px; min-height: 20px; }
-  .ledger-footer { font-size: 12px; color: var(--text3); padding: 8px 4px; }
-
-  /* Manage sizes */
-  .size-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .size-chip {
-    display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px;
-    background: var(--surface2); border: 1px solid var(--border); border-radius: 20px;
-    font-size: 12px; font-weight: 500;
-  }
-  .size-chip button { background: none; border: none; cursor: pointer; color: var(--text3); font-size: 14px; line-height: 1; padding: 0; display: flex; align-items: center; }
-  .size-chip button:hover { color: var(--red); }
-
-  /* Password screen */
-  #lock-screen {
-    position: fixed; inset: 0; background: var(--bg);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 9999;
-  }
-  .lock-card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 16px; padding: 40px 48px; box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-    display: flex; flex-direction: column; align-items: center; gap: 18px;
-    width: 100%; max-width: 360px; text-align: center;
-  }
-  .lock-logo { font-size: 42px; }
-  .lock-title { font-size: 22px; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
-  .lock-sub { font-size: 13px; color: var(--text3); margin-top: -10px; }
-  .lock-input-wrap { width: 100%; position: relative; }
-  .lock-input {
-    width: 100%; padding: 11px 42px 11px 14px; font-size: 15px; font-family: inherit;
-    border: 1px solid var(--border); border-radius: var(--radius); outline: none;
-    background: var(--surface); color: var(--text);
-    transition: border-color 0.15s; box-sizing: border-box;
-  }
-  .lock-input:focus { border-color: var(--blue); }
-  .lock-input.shake { animation: shake 0.35s ease; border-color: var(--red); }
-  .lock-toggle {
-    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
-    background: none; border: none; cursor: pointer; color: var(--text3); font-size: 15px; padding: 0;
-  }
-  .lock-btn {
-    width: 100%; padding: 11px; font-size: 15px; font-weight: 600; font-family: inherit;
-    background: var(--text); color: #fff; border: none; border-radius: var(--radius); cursor: pointer;
-  }
-  .lock-btn:hover { opacity: 0.85; }
-  .lock-error { font-size: 13px; color: var(--red); min-height: 16px; }
-  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-7px)} 75%{transform:translateX(7px)} }
-
+/* ── Modal ── */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:1000;align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--surface);border-radius:var(--radius);padding:24px 28px;width:100%;max-width:400px;margin:20px;box-shadow:var(--shadow-md);}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.modal-title{font-size:15px;font-weight:600;}
 </style>
 </head>
 <body>
 
+<!-- Lock Screen -->
 <div id="lock-screen">
   <div class="lock-card">
     <div class="lock-logo">💎</div>
     <div class="lock-title">Diamond Ledger</div>
     <div class="lock-sub">Enter password to continue</div>
     <div class="lock-input-wrap">
-      <input class="lock-input" type="password" id="lock-input" placeholder="Password"
-        onkeydown="if(event.key==='Enter')checkPassword()">
-      <button class="lock-toggle" onclick="togglePwd()" title="Show/hide">👁</button>
+      <input class="lock-input" type="password" id="lock-input" placeholder="Password" onkeydown="if(event.key==='Enter')checkPwd()">
+      <button class="lock-toggle" onclick="toggleLockVis()">👁</button>
     </div>
-    <div class="lock-error" id="lock-error"></div>
-    <button class="lock-btn" onclick="checkPassword()">Unlock</button>
+    <div class="lock-err" id="lock-err"></div>
+    <button class="lock-btn" onclick="checkPwd()">Unlock</button>
   </div>
 </div>
 
-<div class="shell" id="main-app" style="display:none;">
+<!-- Main App -->
+<div class="shell" id="main-app" style="display:none">
 
-  <!-- Header -->
   <div class="topbar">
     <div class="topbar-left">
-      <div class="logo-mark">💎</div>
+      <div class="app-logo">💎</div>
       <div>
         <div class="app-title">Diamond Ledger</div>
         <div class="app-sub">Stock &amp; Transaction Tracker</div>
       </div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-      <div class="drive-status" onclick="toggleDrivePanel()" title="Google Drive sync settings">
+    <div class="topbar-right">
+      <div class="drive-bar" onclick="toggleDrivePanel()">
         <div class="drive-dot" id="drive-dot"></div>
         <span id="drive-label">Drive: not configured</span>
-        <span style="color:var(--text3);font-size:11px;">⚙</span>
+        <span style="color:var(--text3);font-size:11px;margin-left:4px;">⚙</span>
       </div>
-      <button class="btn sm" onclick="syncDrive()" id="sync-btn" title="Sync now">↻ Sync</button>
+      <button class="btn sm" onclick="syncDrive()">↻ Sync</button>
     </div>
   </div>
 
-  <!-- Drive config panel -->
+  <!-- Drive Panel -->
   <div class="drive-panel" id="drive-panel">
-    <h3>Google Drive Sync Setup</h3>
-    <p>This app can save your data to a JSON file in your Google Drive so it's accessible from any computer. To enable this, you need a Google Drive API key.</p>
-    <ol>
-      <li>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a> → Create a project</li>
-      <li>Enable the <strong>Google Drive API</strong> for the project</li>
-      <li>Go to <strong>Credentials</strong> → Create <strong>API Key</strong></li>
-      <li>Also create an <strong>OAuth 2.0 Client ID</strong> (Web application type), add <code>http://localhost</code> and your file's location to Authorized Origins</li>
-      <li>Paste the Client ID below and click Connect</li>
-    </ol>
-    <p style="background:var(--amber-bg);color:var(--amber);padding:8px 12px;border-radius:var(--radius-sm);margin-bottom:14px;border:1px solid #f0d89a;">
-      <strong>Simpler alternative:</strong> Use the <strong>Import / Export</strong> buttons to manually back up and restore your data as a JSON file. Save it to your Google Drive folder manually — works perfectly across computers without any API setup.
-    </p>
-    <div class="input-row">
-      <input type="text" id="client-id-input" placeholder="Paste Google OAuth Client ID here..." style="flex:1;padding:8px 11px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;">
-      <button class="btn primary" onclick="initGoogleAuth()">Connect Google Drive</button>
+    <h3>Google Drive Sync</h3>
+    <p>Enter your Google OAuth Client ID to enable automatic sync across devices.</p>
+    <div class="drive-warn">Simpler option: use Export/Import JSON below to back up manually via Google Drive folder.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+      <input type="text" id="client-id-input" placeholder="Paste Google OAuth Client ID..." style="flex:1;min-width:220px;padding:8px 11px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;">
+      <button class="btn primary" onclick="initGDrive()">Connect Drive</button>
       <button class="btn" onclick="toggleDrivePanel()">Close</button>
     </div>
-    <div class="section-sep" style="margin:14px 0;"></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="btn" onclick="exportJSON()">⬇ Export data as JSON</button>
+    <div class="section-sep" style="margin:12px 0;"></div>
+    <div class="btn-row">
+      <button class="btn" onclick="exportJSON()">⬇ Export JSON backup</button>
       <button class="btn" onclick="document.getElementById('import-file').click()">⬆ Import JSON backup</button>
       <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(event)">
     </div>
   </div>
 
-  <!-- Notices -->
   <div id="notice-area"></div>
 
   <!-- Tabs -->
@@ -331,10 +249,10 @@
   <!-- DASHBOARD -->
   <div id="tab-dashboard">
     <div class="stats-row">
-      <div class="stat-card"><div class="stat-label">Net Stock (pieces)</div><div class="stat-val" id="s-net-pcs">0</div><div class="stat-sub">On hand</div></div>
-      <div class="stat-card"><div class="stat-label">Net Stock (carats)</div><div class="stat-val" id="s-net-ct">0.00</div><div class="stat-sub">On hand</div></div>
-      <div class="stat-card"><div class="stat-label">Total IN</div><div class="stat-val positive" id="s-in-pcs">0</div><div class="stat-sub" id="s-in-ct-sub">0.00 ct</div></div>
-      <div class="stat-card"><div class="stat-label">Total OUT</div><div class="stat-val negative" id="s-out-pcs">0</div><div class="stat-sub" id="s-out-ct-sub">0.00 ct</div></div>
+      <div class="stat-card"><div class="stat-label">Net Stock (pcs)</div><div class="stat-val pos" id="s-net-pcs">0</div><div class="stat-sub">On hand</div></div>
+      <div class="stat-card"><div class="stat-label">Net Stock (ct)</div><div class="stat-val pos" id="s-net-ct">0.000</div><div class="stat-sub">On hand</div></div>
+      <div class="stat-card"><div class="stat-label">Total IN (pcs)</div><div class="stat-val" id="s-in-pcs">0</div><div class="stat-sub" id="s-in-ct-sub">0.000 ct</div></div>
+      <div class="stat-card"><div class="stat-label">Total OUT (pcs)</div><div class="stat-val" id="s-out-pcs">0</div><div class="stat-sub" id="s-out-ct-sub">0.000 ct</div></div>
       <div class="stat-card"><div class="stat-label">Total Entries</div><div class="stat-val" id="s-entries">0</div><div class="stat-sub" id="s-last">—</div></div>
     </div>
     <div class="card">
@@ -342,7 +260,7 @@
       <div class="table-wrap">
         <table>
           <thead><tr><th>Date</th><th>Type</th><th>Shape</th><th>Size</th><th>Colour</th><th>Pieces</th><th>Carats</th><th>Ref</th><th>Notes</th></tr></thead>
-          <tbody id="recent-tbody"><tr><td colspan="7" class="empty">No transactions yet</td></tr></tbody>
+          <tbody id="dash-tbody"><tr><td colspan="9" class="empty">No transactions yet</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -356,47 +274,43 @@
         <div class="form-grid">
           <div class="field"><label>Date *</label><input type="date" id="f-date"></div>
           <div class="field"><label>Type *</label>
-            <select id="f-type" onchange="LS.set('dl_last_type',this.value)"><option value="IN">IN (Received)</option><option value="OUT">OUT (Dispatched)</option></select>
+            <select id="f-type" onchange="LS.set('dl_last_type',this.value)">
+              <option value="IN">IN (Received)</option>
+              <option value="OUT">OUT (Dispatched)</option>
+            </select>
           </div>
           <div class="field">
             <label>Shape *</label>
-            <input type="text" id="f-shape" list="shape-list" placeholder="Type or select..." autocomplete="off" oninput="onShapeChange()" style="text-transform:uppercase;">
-            <datalist id="shape-list"></datalist>
+            <input type="text" id="f-shape" list="shape-datalist" placeholder="Type to search..." autocomplete="off" oninput="onShapeChange()" onchange="validateShape()">
+            <datalist id="shape-datalist"></datalist>
           </div>
-          <div class="field"><label>Length (MM) *</label><input type="number" id="f-length" placeholder="0.00" step="0.01" min="0" oninput="updateSizePreview()"></div>
-          <div class="field" id="f-width-wrap"><label>Width (MM) *</label><input type="number" id="f-width" placeholder="0.00" step="0.01" min="0" oninput="updateSizePreview()"></div>
+          <div class="field"><label>Length (MM) *</label><input type="number" id="f-length" placeholder="0.00" step="0.01" min="0" oninput="updatePreview()"></div>
+          <div class="field" id="f-width-wrap"><label>Width (MM) *</label><input type="number" id="f-width" placeholder="0.00" step="0.01" min="0" oninput="updatePreview()"></div>
           <div class="field"><label>No. of Pieces *</label><input type="number" id="f-pieces" placeholder="0" min="0" step="1"></div>
           <div class="field"><label>Carat Weight *</label><input type="number" id="f-carats" placeholder="0.000" step="0.001" min="0"></div>
-          <div class="field">
-            <label>Colour</label>
-            <select id="f-colour" onchange="updateSizePreview()">
-              <option value="WHITE">White (Default)</option>
-            </select>
+          <div class="field"><label>Colour</label>
+            <select id="f-colour" onchange="updatePreview()"><option value="WHITE">White (Default)</option></select>
           </div>
           <div class="field"><label>Invoice / Ref No.</label><input type="text" id="f-ref" placeholder="Optional"></div>
-          <div class="field" style="grid-column: span 2;"><label>Notes</label><input type="text" id="f-notes" placeholder="Optional remarks"></div>
-          <datalist id="size-list"></datalist>
+          <div class="field" style="grid-column:span 2;"><label>Notes</label><input type="text" id="f-notes" placeholder="Optional remarks"></div>
         </div>
-        <div class="btn-row">
-          <button class="btn primary" onclick="addEntry()" id="save-btn">✓ Save Entry</button>
+        <div id="size-preview" class="size-preview">
+          <span style="color:var(--text2)">Stock for <strong id="preview-label"></strong>:</span>
+          <span id="preview-val" style="font-family:'DM Mono',monospace;font-weight:600;font-size:15px;"></span>
+        </div>
+        <div class="btn-row" style="margin-top:14px;">
+          <button class="btn primary" onclick="addEntry()">✓ Save Entry</button>
           <button class="btn" onclick="clearForm()">Clear</button>
         </div>
-        <div id="form-msg"></div>
-        <div id="size-stock-preview" style="display:none;margin-top:14px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;align-items:center;justify-content:space-between;">
-          <span style="color:var(--text2);">Current stock for <strong id="preview-size-name"></strong>:</span>
-          <span id="preview-stock-val" style="font-family:'DM Mono',monospace;font-weight:600;font-size:15px;"></span>
-        </div>
-
+        <div class="form-msg" id="form-msg"></div>
       </div>
     </div>
-
-    <!-- Today's entries -->
     <div class="card">
       <div class="card-header"><span class="card-title">Today's entries</span></div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Type</th><th>Shape</th><th>Size</th><th>Colour</th><th>Pieces</th><th>Carats</th><th>Ref</th><th>Notes</th></tr></thead>
-          <tbody id="today-tbody"><tr><td colspan="6" class="empty">No entries today yet</td></tr></tbody>
+          <tbody id="today-tbody"><tr><td colspan="8" class="empty">No entries today yet</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -408,55 +322,46 @@
       <div class="card-header">
         <span class="card-title">Transaction ledger</span>
         <div class="btn-row">
-          <button class="btn sm" onclick="exportCSV()">⬇ CSV</button>
+          <button class="btn sm" onclick="exportCSV()">⬇ CSV (full)</button>
+          <button class="btn sm" onclick="exportFilteredCSV()">⬇ CSV (filtered)</button>
           <button class="btn sm" onclick="exportReport()">⬇ HTML Report</button>
         </div>
       </div>
       <div class="card-body" style="padding-bottom:0;">
         <div class="filter-row">
-          <input type="text" id="filter-search" placeholder="🔍 Search entries..." oninput="renderLedger()" style="min-width:180px;">
-          <select id="filter-shape" onchange="renderLedger()"><option value="">All shapes</option></select>
-          <select id="filter-type" onchange="renderLedger()">
-            <option value="">All types</option>
-            <option value="IN">IN only</option>
-            <option value="OUT">OUT only</option>
-          </select>
-          <select id="filter-size" onchange="renderLedger()">
-            <option value="">All sizes</option>
-          </select>
-          <input type="date" id="filter-from" onchange="renderLedger()" title="From date">
+          <input type="text" id="fl-search" placeholder="🔍 Search..." oninput="renderLedger()" style="min-width:160px;">
+          <select id="fl-shape" onchange="renderLedger()"><option value="">All shapes</option></select>
+          <select id="fl-size" onchange="renderLedger()"><option value="">All sizes</option></select>
+          <select id="fl-type" onchange="renderLedger()"><option value="">All types</option><option value="IN">IN only</option><option value="OUT">OUT only</option></select>
+          <input type="date" id="fl-from" onchange="renderLedger()" title="From date">
           <span style="font-size:12px;color:var(--text3);">to</span>
-          <input type="date" id="filter-to" onchange="renderLedger()" title="To date">
+          <input type="date" id="fl-to" onchange="renderLedger()" title="To date">
           <button class="btn sm" onclick="clearFilters()">Clear</button>
-          <button class="btn sm" onclick="exportFilteredCSV()">⬇ Export filtered CSV</button>
         </div>
       </div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>#</th><th>Date</th><th>Type</th><th>Shape</th><th>Size</th><th>Colour</th><th>Pieces</th><th>Carats</th><th>Ref</th><th>Notes</th><th></th></tr></thead>
-          <tbody id="ledger-tbody"><tr><td colspan="9" class="empty">No entries yet</td></tr></tbody>
+          <tbody id="ledger-tbody"><tr><td colspan="11" class="empty">No entries yet</td></tr></tbody>
           <tfoot id="ledger-tfoot"></tfoot>
         </table>
       </div>
-      <div class="ledger-footer" id="ledger-footer"></div>
+      <div style="font-size:12px;color:var(--text3);padding:8px 14px;" id="ledger-footer"></div>
     </div>
   </div>
 
   <!-- STOCK -->
   <div id="tab-stock" style="display:none">
-    <div class="card" style="margin-bottom:20px;">
+    <div class="card">
       <div class="card-header">
         <span class="card-title">Current stock summary</span>
         <div class="btn-row">
-          <button class="btn sm" onclick="exportStockCSV()">⬇ Export Stock CSV</button>
+          <button class="btn sm" onclick="exportStockCSV()">⬇ Export CSV</button>
           <button class="btn sm" onclick="exportReport('stock')">⬇ HTML Report</button>
         </div>
       </div>
-      <div class="card-body" style="padding-bottom:4px;">
-        <div style="margin-bottom:14px;">
-          <input type="text" id="stock-search" placeholder="🔍 Search by size/grade..." oninput="renderStock()"
-            style="padding:8px 12px;font-size:13px;font-family:inherit;border:1px solid var(--border);border-radius:var(--radius-sm);width:100%;max-width:320px;outline:none;">
-        </div>
+      <div class="card-body" style="padding-bottom:8px;">
+        <input type="text" id="stock-search" placeholder="🔍 Search by size/shape..." oninput="renderStock()" style="padding:8px 12px;font-size:13px;font-family:inherit;border:1px solid var(--border);border-radius:var(--radius-sm);width:100%;max-width:300px;outline:none;margin-bottom:16px;">
         <div id="stock-cards"></div>
       </div>
     </div>
@@ -465,7 +370,7 @@
       <div class="table-wrap">
         <table>
           <thead><tr><th>Shape</th><th>Size</th><th>Colour</th><th>IN (pcs)</th><th>OUT (pcs)</th><th>Net (pcs)</th><th>IN (ct)</th><th>OUT (ct)</th><th>Net (ct)</th><th>Status</th></tr></thead>
-          <tbody id="stock-tbody"></tbody>
+          <tbody id="stock-tbody"><tr><td colspan="10" class="empty">No data yet</td></tr></tbody>
           <tfoot id="stock-tfoot"></tfoot>
         </table>
       </div>
@@ -475,719 +380,685 @@
   <!-- SETTINGS -->
   <div id="tab-settings" style="display:none">
     <div class="card">
-      <div class="card-header"><span class="card-title">Manage colours</span></div>
-      <div class="card-body">
-        <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Add or remove diamond colours. White is always available as default and cannot be removed.</p>
-        <div class="btn-row" style="margin-bottom:12px;">
-          <input type="text" id="new-colour-input" placeholder="Type new colour..." style="padding:8px 11px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;width:220px;"
-            onkeydown="if(event.key==='Enter')addColour()">
-          <button class="btn primary" onclick="addColour()">+ Add</button>
-        </div>
-        <div class="size-chips" id="colour-chips"></div>
-      </div>
-    </div>
-
-    <div class="card">
       <div class="card-header"><span class="card-title">Manage shapes</span></div>
       <div class="card-body">
-        <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Add or remove diamond shapes that appear in the entry form. These are saved automatically.</p>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">Add or remove diamond shapes available in the entry form.</p>
         <div class="btn-row" style="margin-bottom:12px;">
-          <input type="text" id="new-shape-input" placeholder="Type new shape name..." style="padding:8px 11px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;width:220px;"
-            onkeydown="if(event.key==='Enter')addShape()">
+          <input type="text" id="new-shape-input" placeholder="New shape name..." style="padding:8px 11px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;width:200px;" onkeydown="if(event.key==='Enter')addShape()">
           <button class="btn primary" onclick="addShape()">+ Add</button>
         </div>
-        <div class="size-chips" id="shape-chips"></div>
+        <div class="chips" id="shape-chips"></div>
       </div>
     </div>
-
+    <div class="card">
+      <div class="card-header"><span class="card-title">Manage colours</span></div>
+      <div class="card-body">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">Add or remove colours. White is always available as default.</p>
+        <div class="btn-row" style="margin-bottom:12px;">
+          <input type="text" id="new-colour-input" placeholder="New colour name..." style="padding:8px 11px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;width:200px;" onkeydown="if(event.key==='Enter')addColour()">
+          <button class="btn primary" onclick="addColour()">+ Add</button>
+        </div>
+        <div class="chips" id="colour-chips"></div>
+      </div>
+    </div>
     <div class="card">
       <div class="card-header"><span class="card-title">Manage size / grade list</span></div>
       <div class="card-body">
-        <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Add or remove the size/grade options that appear in the entry form dropdown. These are saved automatically.</p>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">Add, rename or remove sizes. These appear as a searchable list in the entry form.</p>
         <div class="btn-row" style="margin-bottom:12px;">
-          <input type="text" id="new-size-input" placeholder="Type new size/grade..." style="padding:8px 11px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;width:220px;"
-            onkeydown="if(event.key==='Enter')addSize()">
+          <input type="text" id="new-size-input" placeholder="New size..." style="padding:8px 11px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;width:200px;" onkeydown="if(event.key==='Enter')addSize()">
           <button class="btn primary" onclick="addSize()">+ Add</button>
         </div>
-        <div class="size-chips" id="size-chips"></div>
+        <div class="chips" id="size-chips"></div>
       </div>
     </div>
     <div class="card">
       <div class="card-header"><span class="card-title">Data management</span></div>
       <div class="card-body">
-        <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Export your full data as JSON (for backup or transfer to another device), or import a previously exported backup.</p>
         <div class="btn-row">
           <button class="btn" onclick="exportJSON()">⬇ Export full backup (JSON)</button>
           <button class="btn" onclick="document.getElementById('import-file2').click()">⬆ Import backup (JSON)</button>
           <input type="file" id="import-file2" accept=".json" style="display:none" onchange="importJSON(event)">
         </div>
         <div class="section-sep"></div>
-        <p style="font-size:13px;color:var(--red);margin-bottom:10px;">Danger zone — this cannot be undone.</p>
-        <button class="btn danger" onclick="clearAllData()">🗑 Delete all data</button>
+        <p style="font-size:13px;color:var(--red);margin-bottom:10px;">Danger zone — cannot be undone.</p>
+        <button class="btn danger" onclick="clearAll()">🗑 Delete all data</button>
       </div>
     </div>
   </div>
 
-
-  <!-- Edit Size Modal -->
-  <div id="edit-size-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:1000;align-items:center;justify-content:center;">
-    <div style="background:var(--surface);border-radius:var(--radius);padding:24px 28px;width:100%;max-width:380px;margin:20px;box-shadow:0 8px 32px rgba(0,0,0,0.18);">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
-        <span style="font-size:16px;font-weight:600;">Rename Size / Grade</span>
-        <button class="btn sm" onclick="closeEditSizeModal()">✕</button>
-      </div>
-      <div class="field" style="margin-bottom:16px;">
-        <label>Current name</label>
-        <input type="text" id="edit-size-old" disabled style="opacity:0.6;">
-      </div>
-      <div class="field" style="margin-bottom:16px;">
-        <label>New name</label>
-        <input type="text" id="edit-size-new" onkeydown="if(event.key==='Enter')saveEditSize()">
-      </div>
-      <div class="btn-row">
-        <button class="btn primary" onclick="saveEditSize()">✓ Rename</button>
-        <button class="btn" onclick="closeEditSizeModal()">Cancel</button>
-      </div>
-      <div id="edit-size-msg" style="font-size:13px;margin-top:8px;min-height:18px;color:var(--text2);"></div>
-    </div>
-  </div>
 </div><!-- /shell -->
 
+<!-- Rename Size Modal -->
+<div class="modal-bg" id="rename-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Rename Size / Grade</span>
+      <button class="btn sm" onclick="closeRenameModal()">✕</button>
+    </div>
+    <div class="field" style="margin-bottom:14px;">
+      <label>Current name</label>
+      <input type="text" id="rename-old" disabled style="opacity:0.6;">
+    </div>
+    <div class="field" style="margin-bottom:16px;">
+      <label>New name</label>
+      <input type="text" id="rename-new" onkeydown="if(event.key==='Enter')saveRename()">
+    </div>
+    <div class="btn-row">
+      <button class="btn primary" onclick="saveRename()">✓ Rename</button>
+      <button class="btn" onclick="closeRenameModal()">Cancel</button>
+    </div>
+    <div style="font-size:13px;margin-top:10px;min-height:18px;" id="rename-msg"></div>
+  </div>
+</div>
+
 <script>
-// ── State ──────────────────────────────────────────────────────────────────
+// ── Constants ────────────────────────────────────────────────────────────────
+const PWD_HASH = 'a44791d254ba49bb687c58be391a5e27bf699426ff62a616d22e0e699c7be1cd';
+const DRIVE_FILE = 'diamond_ledger_data.json';
+const DEFAULT_SHAPES = ['ROUND','PRINCESS','PEAR','OVAL','MARQUISE','HEART','CUSHION','EMERALD','TRILLION','RADIANT','LOZENGE','BAGUETTE'];
+const DEFAULT_COLOURS = ['WHITE','YELLOW','PINK','BLUE','GREEN','BROWN','BLACK'];
+
+// ── State ────────────────────────────────────────────────────────────────────
 const LS = {
-  get: k => { try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } },
-  set: (k,v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+  get: k => { try { return JSON.parse(localStorage.getItem(k)); } catch(e) { return null; } },
+  set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) {} }
 };
 
-const DEFAULT_SHAPES  = ['ROUND','PRINCESS','PEAR','OVAL','MARQUISE','HEART','CUSHION','EMERALD','TRILLION','RADIANT','LOZENGE','BAGUETTE'];
-const DEFAULT_COLOURS = ['WHITE','YELLOW','PINK','BLUE','GREEN','BROWN','BLACK'];
-let entries     = LS.get('dl_entries')  || [];
-let sizes       = LS.get('dl_sizes')    || [];
-let shapes      = LS.get('dl_shapes')   || [...DEFAULT_SHAPES];
-let colours     = LS.get('dl_colours')  || [...DEFAULT_COLOURS];
-let driveConfig = LS.get('dl_drive')    || { clientId: '', token: '' };
-let gapi_loaded = false;
-
-// Migrate old entries: if entry has no shape field, try to parse from size
-function migrateEntries() {
-  let changed = false;
-  entries.forEach(e => {
-    if(!e.shape) {
-      const s = (e.size||'').toUpperCase().trim();
-      // Try to detect shape prefix
-      const found = DEFAULT_SHAPES.find(sh => s.startsWith(sh));
-      if(found) {
-        e.shape = found;
-        e.size  = s.replace(found,'').trim();
-      } else {
-        e.shape = '';
-        // keep e.size as-is
-      }
-      changed = true;
-    }
-  });
-  if(changed) save();
-}
+let entries  = LS.get('dl_entries')  || [];
+let sizes    = LS.get('dl_sizes')    || [];
+let shapes   = LS.get('dl_shapes')   || [...DEFAULT_SHAPES];
+let colours  = LS.get('dl_colours')  || [...DEFAULT_COLOURS];
+let driveCfg = LS.get('dl_drive')    || { clientId: '', token: '' };
+let syncTimer = null;
+let renamingSize = null;
 
 function save() {
   LS.set('dl_entries', entries);
   LS.set('dl_sizes', sizes);
   LS.set('dl_shapes', shapes);
   LS.set('dl_colours', colours);
-  LS.set('dl_drive', driveConfig);
+  LS.set('dl_drive', driveCfg);
 }
 
-// ── Utils ──────────────────────────────────────────────────────────────────
-const fmt    = n => parseFloat(n||0).toFixed(2);
+// ── Utils ────────────────────────────────────────────────────────────────────
 const fmt3   = n => parseFloat(n||0).toFixed(3);
-const fmtMM  = n => parseFloat(n||0).toFixed(2);
+const fmt2   = n => parseFloat(n||0).toFixed(2);
+const today  = () => new Date().toISOString().slice(0,10);
+const fmtDate= d => { if(!d) return '—'; const p=d.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; };
+const el     = id => document.getElementById(id);
+const val    = id => (el(id)||{}).value || '';
 
-function buildSizeLabel(shape, length, width, colour) {
+function buildLabel(shape, length, width, colour) {
   shape  = (shape||'').toUpperCase().trim();
   colour = (colour||'WHITE').toUpperCase().trim();
-  length = fmtMM(length);
-  width  = fmtMM(width);
-  let label = '';
-  if(!shape) return length;
-  if(shape === 'ROUND') label = shape + ' ' + length;
-  else if(width && parseFloat(width) > 0) label = shape + ' ' + length + 'X' + width;
-  else label = shape + ' ' + length;
-  // Only append colour if not white
-  if(colour && colour !== 'WHITE') label += ' ' + colour;
+  const l = fmt2(length);
+  const w = fmt2(width);
+  let label = shape === 'ROUND' ? `${shape} ${l}` : `${shape} ${l}X${w}`;
+  if(colour && colour !== 'WHITE') label += ` ${colour}`;
   return label;
 }
 
-function parseShapeSize(combined) {
-  // Split a stored "SHAPE SIZE" or "SHAPE LXW" back into parts
-  const s = (combined||'').toUpperCase().trim();
-  const found = ['ROUND','PRINCESS','PEAR','OVAL','MARQUISE','HEART','CUSHION','EMERALD','TRILLION','RADIANT','LOZENGE','BAGUETTE'].find(sh => s.startsWith(sh+' ') || s===sh);
-  if(found) {
-    const rest = s.slice(found.length).trim();
-    return { shape: found, size: rest };
+function stockKey(e) {
+  // Unique key for stock grouping — shape + size + colour
+  const sh  = (e.shape||'').toUpperCase().trim();
+  const sz  = (e.size||'').toUpperCase().trim();
+  const col = (e.colour||'WHITE').toUpperCase().trim();
+  return sh + '||' + sz + '||' + col;
+}
+
+// ── Password ─────────────────────────────────────────────────────────────────
+async function sha256(msg) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function checkPwd() {
+  const inp = el('lock-input');
+  const h = await sha256(inp.value);
+  if(h === PWD_HASH) {
+    sessionStorage.setItem('dl_auth','1');
+    el('lock-screen').style.display = 'none';
+    el('main-app').style.display = 'block';
+    initApp();
+  } else {
+    inp.classList.remove('err'); void inp.offsetWidth; inp.classList.add('err');
+    el('lock-err').textContent = 'Incorrect password.';
+    inp.value = '';
+    setTimeout(()=>{ inp.classList.remove('err'); el('lock-err').textContent=''; }, 3500);
   }
-  return { shape: '', size: s };
 }
-const fmtDate = d => { if(!d) return '—'; const p=d.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; };
-const today = () => new Date().toISOString().slice(0,10);
-
-function showNotice(msg, type='info', duration=5000) {
-  const el = document.getElementById('notice-area');
-  el.innerHTML = `<div class="notice ${type}">${msg}</div>`;
-  if(duration) setTimeout(() => el.innerHTML='', duration);
+function toggleLockVis() {
+  const inp = el('lock-input');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+if(sessionStorage.getItem('dl_auth')==='1') {
+  el('lock-screen').style.display='none';
+  el('main-app').style.display='block';
 }
 
-// ── Tabs ───────────────────────────────────────────────────────────────────
+// ── Notice ───────────────────────────────────────────────────────────────────
+function showNotice(msg, type='info', dur=5000) {
+  el('notice-area').innerHTML = `<div class="notice ${type}">${msg}</div>`;
+  if(dur) setTimeout(()=>el('notice-area').innerHTML='', dur);
+}
+
+// ── Tabs ─────────────────────────────────────────────────────────────────────
 function switchTab(t) {
   ['dashboard','entry','ledger','stock','settings'].forEach((id,i) => {
-    document.getElementById('tab-'+id).style.display = id===t ? 'block' : 'none';
+    el('tab-'+id).style.display = id===t ? 'block' : 'none';
     document.querySelectorAll('.tab')[i].classList.toggle('active', id===t);
   });
   if(t==='dashboard') renderDashboard();
-  if(t==='entry')     renderTodayEntries();
-  if(t==='ledger')    { populateSizeFilter(); renderLedger(); }
+  if(t==='entry')     { populateShapeDropdown(); populateColourDropdown(); renderTodayEntries(); }
+  if(t==='ledger')    { populateLedgerFilters(); renderLedger(); }
   if(t==='stock')     renderStock();
-  if(t==='settings')  renderSizeChips();
+  if(t==='settings')  { renderShapeChips(); renderColourChips(); renderSizeChips(); }
 }
 
-// ── Size / Grade management ────────────────────────────────────────────────
-function populateSizeDatalist() {
-  const dl = document.getElementById('size-list');
-  dl.innerHTML = sizes.map(s => `<option value="${s}">`).join('');
+// ── Dropdowns ────────────────────────────────────────────────────────────────
+function populateShapeDropdown() {
+  const dl = el('shape-datalist');
+  if(dl) dl.innerHTML = shapes.map(s=>`<option value="${s}">`).join('');
 }
-
-function populateSizeFilter() {
-  const sel = document.getElementById('filter-size');
-  const cur = sel ? sel.value : '';
-  if(sel) {
-    sel.innerHTML = '<option value="">All sizes</option>' +
-      sizes.map(s => `<option value="${s}" ${s===cur?'selected':''}>${s}</option>`).join('');
-    const fromEntries = [...new Set(entries.map(e=>e.size?e.size.toUpperCase():null).filter(Boolean))];
-    fromEntries.forEach(s => {
-      if(!sizes.some(x=>x.toUpperCase()===s)) {
-        const o = document.createElement('option'); o.value=s; o.textContent=s;
-        if(s===cur) o.selected=true; sel.appendChild(o);
-      }
-    });
-  }
-
-  // Populate shape datalist (typable input)
-  const shapeDL = document.getElementById('shape-list');
-  if(shapeDL) shapeDL.innerHTML = shapes.map(s=>`<option value="${s}">`).join('');
-  // Populate filter-shape select in ledger
-  const fShapeSel = document.getElementById('filter-shape');
-  if(fShapeSel) {
-    const curSh = fShapeSel.value;
-    fShapeSel.innerHTML = '<option value="">All shapes</option>' +
-      shapes.map(s=>`<option value="${s}" ${s===curSh?'selected':''}>${s}</option>`).join('');
-  }
-}
-
-function addSize() {
-  const input = document.getElementById('new-size-input');
-  const val = input.value.trim().toUpperCase();
-  if(!val) return;
-  if(!sizes.some(s=>s.toUpperCase()===val)) { sizes.push(val); save(); populateSizeDatalist(); renderSizeChips(); }
-  input.value = '';
-}
-
-function removeSize(s) {
-  sizes = sizes.filter(x => x!==s); save(); populateSizeDatalist(); renderSizeChips();
-}
-
-function renderSizeChips() {
-  const container = document.getElementById('size-chips');
-  if(!sizes.length) { container.innerHTML = '<span style="font-size:13px;color:var(--text3);">No sizes added yet.</span>'; return; }
-  container.innerHTML = sizes.map(s => `
-    <div class="size-chip">${s}
-      <button onclick="openEditSizeModal('${s.replace(/'/g,"\\'")}') " title="Rename" style="font-size:12px;margin-right:2px;">✎</button>
-      <button onclick="removeSize('${s.replace(/'/g,"\\'")}')">×</button>
-    </div>`).join('');
-}
-
-function renderShapeChips() {
-  const container = document.getElementById('shape-chips');
-  if(!container) return;
-  if(!shapes.length) { container.innerHTML = '<span style="font-size:13px;color:var(--text3);">No shapes added yet.</span>'; return; }
-  container.innerHTML = shapes.map(s => `
-    <div class="size-chip">${s}
-      <button onclick="removeShape('${s.replace(/'/g,"\\'")}')">×</button>
-    </div>`).join('');
-}
-
-function addShape() {
-  const input = document.getElementById('new-shape-input');
-  const val = input.value.trim().toUpperCase();
-  if(!val) return;
-  if(!shapes.some(s=>s.toUpperCase()===val)) { shapes.push(val); save(); renderShapeChips(); populateSizeFilter(); }
-  input.value = '';
-}
-
-function removeShape(s) {
-  if(!confirm(`Remove shape "${s}"? This does not affect existing entries.`)) return;
-  shapes = shapes.filter(x=>x!==s); save(); renderShapeChips(); populateSizeFilter();
-}
-
 function populateColourDropdown() {
-  const sel = document.getElementById('f-colour');
+  const sel = el('f-colour');
   if(!sel) return;
   const cur = sel.value || 'WHITE';
   sel.innerHTML = '<option value="WHITE">White (Default)</option>' +
     colours.filter(c=>c!=='WHITE').map(c=>`<option value="${c}" ${c===cur?'selected':''}>${c.charAt(0)+c.slice(1).toLowerCase()}</option>`).join('');
-  if(cur && cur!=='WHITE') sel.value = cur;
+}
+function populateLedgerFilters() {
+  // Shape filter
+  const shSel = el('fl-shape');
+  if(shSel) {
+    const cur = shSel.value;
+    shSel.innerHTML = '<option value="">All shapes</option>' +
+      shapes.map(s=>`<option value="${s}" ${s===cur?'selected':''}>${s}</option>`).join('');
+  }
+  // Size filter — show only size values (not shape+size)
+  const szSel = el('fl-size');
+  if(szSel) {
+    const cur = szSel.value;
+    const allSizes = [...new Set(entries.map(e=>e.size||'').filter(Boolean))].sort();
+    szSel.innerHTML = '<option value="">All sizes</option>' +
+      allSizes.map(s=>`<option value="${s}" ${s===cur?'selected':''}>${s}</option>`).join('');
+  }
 }
 
-function renderColourChips() {
-  const container = document.getElementById('colour-chips');
-  if(!container) return;
-  const nonWhite = colours.filter(c=>c!=='WHITE');
-  if(!nonWhite.length) { container.innerHTML = '<span style="font-size:13px;color:var(--text3);">No extra colours added. White is always available.</span>'; return; }
-  container.innerHTML = nonWhite.map(c => `
-    <div class="size-chip">${c.charAt(0)+c.slice(1).toLowerCase()}
-      <button onclick="removeColour('${c}')">×</button>
-    </div>`).join('');
+// ── Shape/Width logic ────────────────────────────────────────────────────────
+function onShapeChange() {
+  const shape = val('f-shape').toUpperCase().trim();
+  const wrap  = el('f-width-wrap');
+  if(wrap) wrap.style.display = shape === 'ROUND' ? 'none' : 'flex';
+  updatePreview();
+}
+function validateShape() {
+  const inp   = el('f-shape');
+  const shape = inp.value.toUpperCase().trim();
+  if(!shape) return;
+  if(!shapes.includes(shape)) {
+    inp.value = '';
+    inp.style.borderColor = 'var(--red)';
+    el('form-msg').style.color='var(--red)';
+    el('form-msg').textContent = `"${shape}" is not in your shape list. Go to Settings → Manage Shapes to add it.`;
+    setTimeout(()=>{ inp.style.borderColor=''; el('form-msg').textContent=''; }, 4000);
+  } else {
+    inp.value = shape;
+    inp.style.borderColor = '';
+    onShapeChange();
+  }
+}
+function updatePreview() {
+  const shape  = val('f-shape').toUpperCase().trim();
+  const colour = val('f-colour').toUpperCase().trim() || 'WHITE';
+  const length = parseFloat(val('f-length')||0);
+  const width  = shape==='ROUND' ? 0 : parseFloat(val('f-width')||0);
+  const prev   = el('size-preview');
+  if(!shape || !length) { if(prev) prev.style.display='none'; return; }
+  const label  = buildLabel(shape, length, width, colour);
+  const map    = getStockMap();
+  const row    = map.find(r => r.key === stockKey({shape, size: shape==='ROUND'?fmt2(length):fmt2(length)+'X'+fmt2(width), colour}));
+  const netP   = row ? row.inP - row.outP : 0;
+  const netC   = row ? row.inC - row.outC : 0;
+  el('preview-label').textContent = label;
+  const valEl  = el('preview-val');
+  valEl.textContent = `${netP} pcs · ${fmt3(netC)} ct`;
+  valEl.style.color = netP > 0 ? 'var(--brand)' : netP < 0 ? 'var(--red)' : 'var(--text3)';
+  if(prev) prev.style.display = 'flex';
 }
 
-function addColour() {
-  const input = document.getElementById('new-colour-input');
-  const val = input.value.trim().toUpperCase();
-  if(!val || val==='WHITE') return;
-  if(!colours.some(c=>c===val)) { colours.push(val); save(); renderColourChips(); populateColourDropdown(); }
-  input.value = '';
-}
-
-function removeColour(c) {
-  if(c==='WHITE') return;
-  if(!confirm(`Remove colour "${c}"? This does not affect existing entries.`)) return;
-  colours = colours.filter(x=>x!==c); save(); renderColourChips(); populateColourDropdown();
-}
-
-function toggleOutOfStock() {
-  const el  = document.getElementById('oos-cards');
-  const btn = document.getElementById('oos-toggle');
-  if(!el||!btn) return;
-  const open = el.style.display==='block';
-  el.style.display  = open ? 'none' : 'block';
-  const count = el.querySelectorAll('.stock-card').length;
-  btn.textContent = open ? `▶ Show out of stock (${count})` : `▼ Hide out of stock`;
-}
-
-// Auto-save size when a new one is typed in entry form
-function maybeSaveSize(val) {
-  val = val.trim().toUpperCase();
-  if(val && !sizes.some(s=>s.toUpperCase()===val)) { sizes.push(val); save(); populateSizeDatalist(); }
-}
-
-// ── Entry CRUD ─────────────────────────────────────────────────────────────
+// ── Add Entry ────────────────────────────────────────────────────────────────
 function addEntry() {
-  const date   = document.getElementById('f-date').value;
-  const type   = document.getElementById('f-type').value;
-  const shape  = document.getElementById('f-shape').value.toUpperCase().trim();
-  const colour = (document.getElementById('f-colour').value||'WHITE').toUpperCase().trim();
-  const length = parseFloat(document.getElementById('f-length').value||0);
-  const width  = shape==='ROUND' ? 0 : parseFloat(document.getElementById('f-width').value||0);
-  const pieces = parseFloat(document.getElementById('f-pieces').value);
-  const carats = parseFloat(document.getElementById('f-carats').value);
-  const ref    = document.getElementById('f-ref').value.trim();
-  const notes  = document.getElementById('f-notes').value.trim();
-  const msg    = document.getElementById('form-msg');
-  if(!date || !shape || isNaN(length)||length<=0 || isNaN(pieces)||pieces<=0 || isNaN(carats)||carats<=0) {
+  const date   = val('f-date');
+  const type   = val('f-type');
+  const shape  = val('f-shape').toUpperCase().trim();
+  const colour = val('f-colour').toUpperCase().trim() || 'WHITE';
+  const length = parseFloat(val('f-length')||0);
+  const width  = shape==='ROUND' ? 0 : parseFloat(val('f-width')||0);
+  const pieces = parseFloat(val('f-pieces'));
+  const carats = parseFloat(val('f-carats'));
+  const ref    = val('f-ref').trim();
+  const notes  = val('f-notes').trim();
+  const msg    = el('form-msg');
+
+  if(!date || !shape || !length || isNaN(pieces)||pieces<=0 || isNaN(carats)||carats<=0) {
     msg.style.color='var(--red)'; msg.textContent='Please fill in Date, Shape, Length, Pieces and Carat Weight.'; return;
   }
   if(!shapes.includes(shape)) {
-    msg.style.color='var(--red)'; msg.textContent='"'+shape+'" is not a valid shape. Go to Settings → Manage Shapes to add it.'; return;
+    msg.style.color='var(--red)'; msg.textContent=`"${shape}" is not a valid shape. Go to Settings → Manage Shapes.`; return;
   }
-  if(shape!=='ROUND' && (isNaN(width)||width<=0)) {
+  if(shape!=='ROUND' && (!width||isNaN(width)||width<=0)) {
     msg.style.color='var(--red)'; msg.textContent='Please fill in Width for this shape.'; return;
   }
-  const size = buildSizeLabel(shape, length, width, colour);
-  maybeSaveSize(size);
-  entries.unshift({ id: Date.now(), date, type, shape, colour, size, pieces, carats, ref, notes });
-  save(); autoSyncDrive();
-  msg.style.color='var(--green)'; msg.textContent='Entry saved!';
+
+  // Size stored as just the measurement, shape stored separately
+  const size = shape==='ROUND' ? fmt2(length) : fmt2(length)+'X'+fmt2(width);
+
+  // Add to sizes list if new (store just the measurement)
+  if(!sizes.includes(size)) { sizes.push(size); save(); }
+
+  entries.unshift({ id:Date.now(), date, type, shape, size, colour, pieces, carats, ref, notes });
+  save();
+  scheduleDriveUpload();
+
+  msg.style.color='var(--brand)'; msg.textContent='Entry saved!';
   setTimeout(()=>msg.textContent='', 3000);
   clearForm(true);
+  renderAll();
+}
+
+function clearForm(keepMsg) {
+  ['f-length','f-width','f-pieces','f-carats','f-ref','f-notes'].forEach(id=>{ const e=el(id); if(e) e.value=''; });
+  const fd = el('f-date'); if(fd) fd.value = today();
+  const ft = el('f-type'); if(ft) ft.value = LS.get('dl_last_type')||'IN';
+  const fs = el('f-shape'); if(fs) { fs.value=''; fs.style.borderColor=''; }
+  const fw = el('f-width-wrap'); if(fw) fw.style.display='flex';
+  const fc = el('f-colour'); if(fc) fc.value='WHITE';
+  const sp = el('size-preview'); if(sp) sp.style.display='none';
+  if(!keepMsg) { const m=el('form-msg'); if(m) m.textContent=''; }
+}
+
+// ── Delete Entry ─────────────────────────────────────────────────────────────
+function deleteEntry(id) {
+  if(!confirm('Delete this entry? This cannot be undone.')) return;
+  entries = entries.filter(e=>e.id!==id);
+  save();
+  scheduleDriveUpload();
+  renderAll();
+}
+
+// ── Render All ───────────────────────────────────────────────────────────────
+function renderAll() {
   renderDashboard();
   renderLedger();
   renderStock();
   renderTodayEntries();
-  populateSizeFilter();
+  populateLedgerFilters();
 }
 
-function clearForm(keepMsg) {
-  ['f-length','f-width','f-pieces','f-carats','f-ref','f-notes'].forEach(id => document.getElementById(id).value='');
-  const fColour = document.getElementById('f-colour'); if(fColour) fColour.value='WHITE';
-  document.getElementById('f-date').value  = today();
-  const lastType = LS.get('dl_last_type') || 'IN';
-  document.getElementById('f-type').value  = lastType;
-  document.getElementById('f-size-stock-preview') && (document.getElementById('size-stock-preview').style.display='none');
-  if(!keepMsg) document.getElementById('form-msg').textContent='';
-  renderTodayEntries();
-}
-
-function onShapeChange() {
-  const shape = document.getElementById('f-shape').value.toUpperCase().trim();
-  const widthWrap = document.getElementById('f-width-wrap');
-  widthWrap.style.display = (shape==='ROUND') ? 'none' : 'flex';
-  updateSizePreview();
-}
-
-function validateShape() {
-  const input = document.getElementById('f-shape');
-  const val = input.value.toUpperCase().trim();
-  if(!val) return;
-  if(!shapes.includes(val)) {
-    const original = input.value;
-    input.value = '';
-    input.style.borderColor = 'var(--red)';
-    const msg = document.getElementById('form-msg');
-    msg.style.color = 'var(--red)';
-    msg.textContent = '"' + original.toUpperCase() + '" is not in your shape list. Go to Settings → Manage Shapes to add it.';
-    setTimeout(() => { input.style.borderColor = ''; msg.textContent = ''; }, 4000);
-  } else {
-    input.value = val;
-    input.style.borderColor = '';
-    onShapeChange();
-  }
-}
-
-// Make sure width is visible on page load
-document.addEventListener('DOMContentLoaded', function() {
-  const widthWrap = document.getElementById('f-width-wrap');
-  if(widthWrap) widthWrap.style.display='flex';
-});
-
-function renderTodayEntries() {
-  const t = today();
-  const todayList = entries.filter(e => e.date === t);
-  const tbody = document.getElementById('today-tbody');
-  if(!tbody) return;
-  if(!todayList.length) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty">No entries today yet</td></tr>';
-    return;
-  }
-  tbody.innerHTML = todayList.map(e => {
-    const ps=parseShapeSize(e.size);const sh=e.shape||ps.shape;const sz=e.shape?e.size:ps.size;
-    const col=(e.colour&&e.colour!=='WHITE')?e.colour:'—';
-    return `<tr>
-    <td><span class="badge ${e.type.toLowerCase()}">${e.type}</span></td>
-    <td>${sh||'—'}</td>
-    <td>${sz||'—'}</td>
-    <td>${col}</td>
-    <td class="mono">${e.pieces}</td>
-    <td class="mono">${fmt3(e.carats)}</td>
-    <td>${e.ref||'—'}</td>
-    <td>${e.notes||'—'}</td>
-  </tr>`;}).join('');
-}
-
-let syncTimer = null;
-
-function deleteEntry(id) {
-  if(!confirm('Delete this entry?')) return;
-  entries = entries.filter(e=>e.id!==id);
-  save();
-  renderDashboard(); renderLedger(); renderStock(); renderTodayEntries();
-  // Debounce sync — wait 3 seconds after LAST deletion before syncing
-  clearTimeout(syncTimer);
-  syncTimer = setTimeout(() => {
-    if(driveConfig.token) uploadOnlyToDrive();
-  }, 3000);
-}
-
-// Upload only — does NOT pull from Drive, just pushes current local data up
-async function uploadOnlyToDrive() {
-  if(!driveConfig.token) return;
-  setSyncStatus('busy', 'Saving...');
-  try {
-    const search = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=name='${DRIVE_FILE}'+and+trashed=false&fields=files(id)`,
-      {headers:{'Authorization':'Bearer '+driveConfig.token}}
-    );
-    if(search.status===401){setSyncStatus('err','Token expired');return;}
-    const sdata = await search.json();
-    const files = sdata.files||[];
-    const fileId = files.length ? files[0].id : null;
-    await uploadDriveFile(fileId);
-    setSyncStatus('ok','Saved');
-  } catch(err) {
-    setSyncStatus('err','Save failed');
-  }
-}
-
-// ── Dashboard ──────────────────────────────────────────────────────────────
+// ── Dashboard ────────────────────────────────────────────────────────────────
 function renderDashboard() {
   const inP  = entries.filter(e=>e.type==='IN').reduce((a,e)=>a+e.pieces,0);
   const outP = entries.filter(e=>e.type==='OUT').reduce((a,e)=>a+e.pieces,0);
   const inC  = entries.filter(e=>e.type==='IN').reduce((a,e)=>a+e.carats,0);
   const outC = entries.filter(e=>e.type==='OUT').reduce((a,e)=>a+e.carats,0);
-  const net  = inP - outP;
-  document.getElementById('s-net-pcs').textContent = net;
-  document.getElementById('s-net-pcs').className = 'stat-val ' + (net>0?'positive':net<0?'negative':'');
-  document.getElementById('s-net-ct').textContent = fmt(inC-outC);
-  document.getElementById('s-net-ct').className   = 'stat-val ' + ((inC-outC)>0?'positive':(inC-outC)<0?'negative':'');
-  document.getElementById('s-in-pcs').textContent  = inP;
-  document.getElementById('s-out-pcs').textContent = outP;
-  document.getElementById('s-in-ct-sub').textContent  = fmt(inC)+' ct';
-  document.getElementById('s-out-ct-sub').textContent = fmt(outC)+' ct';
-  document.getElementById('s-entries').textContent = entries.length;
-  document.getElementById('s-last').textContent = entries.length ? 'Last: '+fmtDate(entries[0].date) : '—';
-  const tbody = document.getElementById('recent-tbody');
+  const net  = inP-outP; const netC = inC-outC;
+  const sv   = (id,v) => { const e=el(id); if(e) e.textContent=v; };
+  sv('s-net-pcs', net); sv('s-net-ct', fmt3(netC));
+  sv('s-in-pcs', inP);  sv('s-out-pcs', outP);
+  sv('s-in-ct-sub', fmt3(inC)+' ct'); sv('s-out-ct-sub', fmt3(outC)+' ct');
+  sv('s-entries', entries.length);
+  sv('s-last', entries.length ? 'Last: '+fmtDate([...entries].sort((a,b)=>b.date.localeCompare(a.date))[0].date) : '—');
+  const tbody = el('dash-tbody');
+  if(!tbody) return;
   const r = [...entries].sort((a,b)=>b.date.localeCompare(a.date)||(b.id-a.id)).slice(0,10);
   tbody.innerHTML = r.length
-    ? r.map(e=>{
-        const ps=parseShapeSize(e.size);
-        const sh=e.shape||ps.shape||'—';
-        const sz=ps.size||e.size||'—';
-        const col=(e.colour&&e.colour!=='WHITE')?e.colour:'—';
-        return `<tr>
+    ? r.map(e=>`<tr>
         <td>${fmtDate(e.date)}</td>
         <td><span class="badge ${e.type.toLowerCase()}">${e.type}</span></td>
-        <td>${sh}</td>
-        <td>${sz}</td>
-        <td>${col}</td>
+        <td>${e.shape||'—'}</td>
+        <td class="mono">${e.size||'—'}</td>
+        <td>${(e.colour&&e.colour!=='WHITE')?e.colour:'—'}</td>
         <td class="mono">${e.pieces}</td>
         <td class="mono">${fmt3(e.carats)}</td>
         <td>${e.ref||'—'}</td>
         <td>${e.notes||'—'}</td>
-      </tr>`;}).join('')
+      </tr>`).join('')
     : '<tr><td colspan="9" class="empty">No transactions yet</td></tr>';
 }
 
-// ── Ledger ─────────────────────────────────────────────────────────────────
+// ── Today's Entries ───────────────────────────────────────────────────────────
+function renderTodayEntries() {
+  const tbody = el('today-tbody');
+  if(!tbody) return;
+  const t = today();
+  const list = [...entries].filter(e=>e.date===t).sort((a,b)=>b.id-a.id);
+  tbody.innerHTML = list.length
+    ? list.map(e=>`<tr>
+        <td><span class="badge ${e.type.toLowerCase()}">${e.type}</span></td>
+        <td>${e.shape||'—'}</td>
+        <td class="mono">${e.size||'—'}</td>
+        <td>${(e.colour&&e.colour!=='WHITE')?e.colour:'—'}</td>
+        <td class="mono">${e.pieces}</td>
+        <td class="mono">${fmt3(e.carats)}</td>
+        <td>${e.ref||'—'}</td>
+        <td>${e.notes||'—'}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="8" class="empty">No entries today yet</td></tr>';
+}
+
+// ── Ledger ───────────────────────────────────────────────────────────────────
 function getFiltered() {
-  const type      = document.getElementById('filter-type').value;
-  const size      = document.getElementById('filter-size').value;
-  const filterSh  = (document.getElementById('filter-shape')?.value||'').toUpperCase();
-  const from      = document.getElementById('filter-from').value;
-  const to        = document.getElementById('filter-to').value;
-  const search    = (document.getElementById('filter-search')?.value||'').toLowerCase().trim();
+  const search = val('fl-search').toLowerCase().trim();
+  const shape  = val('fl-shape').toUpperCase();
+  const size   = val('fl-size');   // "SHAPE SIZE" format
+  const type   = val('fl-type');
+  const from   = val('fl-from');
+  const to     = val('fl-to');
   return entries.filter(e => {
-    const ps = parseShapeSize(e.size);
-    const esh = (e.shape||ps.shape||'').toUpperCase();
-    if(type && e.type!==type) return false;
-    if(filterSh && esh!==filterSh) return false;
+    if(type  && e.type!==type) return false;
+    if(shape && (e.shape||'').toUpperCase()!==shape) return false;
     if(size && (e.size||'').toUpperCase()!==size.toUpperCase()) return false;
-    if(from && e.date<from)   return false;
-    if(to   && e.date>to)     return false;
+    if(from && e.date<from) return false;
+    if(to   && e.date>to)   return false;
     if(search) {
-      const hay = [e.shape,e.size,e.ref,e.notes,e.type,fmtDate(e.date)].join(' ').toLowerCase();
+      const hay = [e.shape,e.size,e.colour,e.type,e.ref,e.notes,fmtDate(e.date)].join(' ').toLowerCase();
       if(!hay.includes(search)) return false;
     }
     return true;
   });
 }
-
 function renderLedger() {
-  const filtered = getFiltered();
-  const tbody = document.getElementById('ledger-tbody');
-  const tfoot = document.getElementById('ledger-tfoot');
-  const footer= document.getElementById('ledger-footer');
+  const filtered = [...getFiltered()].sort((a,b)=>b.date.localeCompare(a.date)||(b.id-a.id));
+  const tbody = el('ledger-tbody');
+  const tfoot = el('ledger-tfoot');
+  const footer= el('ledger-footer');
+  if(!tbody) return;
   if(!filtered.length) {
-    tbody.innerHTML='<tr><td colspan="9" class="empty">No matching entries</td></tr>';
-    tfoot.innerHTML=''; footer.textContent=''; return;
+    tbody.innerHTML='<tr><td colspan="11" class="empty">No matching entries</td></tr>';
+    if(tfoot) tfoot.innerHTML=''; if(footer) footer.textContent=''; return;
   }
-  const sortedFiltered = [...filtered].sort((a,b)=>b.date.localeCompare(a.date)||(b.id-a.id));
-  tbody.innerHTML = sortedFiltered.map((e,i) => {
-    const ps=parseShapeSize(e.size);const sh=e.shape||ps.shape;const sz=e.shape?e.size:ps.size;
-    const col=(e.colour&&e.colour!=='WHITE')?e.colour:'—';
-    return `<tr>
-    <td class="mono" style="color:var(--text3)">${sortedFiltered.length-i}</td>
+  tbody.innerHTML = filtered.map((e,i)=>`<tr>
+    <td class="mono" style="color:var(--text3)">${filtered.length-i}</td>
     <td>${fmtDate(e.date)}</td>
     <td><span class="badge ${e.type.toLowerCase()}">${e.type}</span></td>
-    <td>${sh||'—'}</td>
-    <td>${sz||'—'}</td>
-    <td>${col}</td>
+    <td>${e.shape||'—'}</td>
+    <td class="mono">${e.size||'—'}</td>
+    <td>${(e.colour&&e.colour!=='WHITE')?e.colour:'—'}</td>
     <td class="mono">${e.pieces}</td>
     <td class="mono">${fmt3(e.carats)}</td>
     <td>${e.ref||'—'}</td>
     <td>${e.notes||'—'}</td>
-    <td><button class="btn sm danger" onclick="deleteEntry(${e.id})" title="Delete">✕</button></td>
-  </tr>`;}).join('');
-  const totIN_P  = filtered.filter(e=>e.type==='IN').reduce((a,e)=>a+e.pieces,0);
-  const totOUT_P = filtered.filter(e=>e.type==='OUT').reduce((a,e)=>a+e.pieces,0);
-  const totIN_C  = filtered.filter(e=>e.type==='IN').reduce((a,e)=>a+e.carats,0);
-  const totOUT_C = filtered.filter(e=>e.type==='OUT').reduce((a,e)=>a+e.carats,0);
-  tfoot.innerHTML = `<tr>
-    <td colspan="2">Totals (${filtered.length} entries)</td>
-    <td></td><td></td><td></td>
-    <td>IN: ${totIN_P} / OUT: ${totOUT_P}</td>
-    <td>IN: ${fmt(totIN_C)} / OUT: ${fmt(totOUT_C)}</td>
-    <td colspan="3">Net: ${totIN_P-totOUT_P} pcs · ${fmt(totIN_C-totOUT_C)} ct</td>
+    <td><button class="btn sm danger" onclick="deleteEntry(${e.id})">✕</button></td>
+  </tr>`).join('');
+  const totInP  = filtered.filter(e=>e.type==='IN').reduce((a,e)=>a+e.pieces,0);
+  const totOutP = filtered.filter(e=>e.type==='OUT').reduce((a,e)=>a+e.pieces,0);
+  const totInC  = filtered.filter(e=>e.type==='IN').reduce((a,e)=>a+e.carats,0);
+  const totOutC = filtered.filter(e=>e.type==='OUT').reduce((a,e)=>a+e.carats,0);
+  if(tfoot) tfoot.innerHTML=`<tr>
+    <td colspan="3">Totals (${filtered.length})</td><td></td><td></td><td></td>
+    <td>IN: ${totInP} / OUT: ${totOutP}</td>
+    <td>IN: ${fmt3(totInC)} / OUT: ${fmt3(totOutC)}</td>
+    <td colspan="3">Net: ${totInP-totOutP} pcs · ${fmt3(totInC-totOutC)} ct</td>
   </tr>`;
-  footer.textContent = '';
+  if(footer) footer.textContent='';
 }
-
 function clearFilters() {
-  ['filter-search','filter-shape','filter-type','filter-size','filter-from','filter-to'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  ['fl-search','fl-shape','fl-size','fl-type','fl-from','fl-to'].forEach(id=>{ const e=el(id); if(e) e.value=''; });
   renderLedger();
 }
 
-// ── Stock ──────────────────────────────────────────────────────────────────
+// ── Stock ────────────────────────────────────────────────────────────────────
 function getStockMap() {
   const map = {};
   entries.forEach(e => {
-    const sz  = (e.size || 'Unspecified').toUpperCase();
-    const col = (e.colour && e.colour !== 'WHITE') ? e.colour.toUpperCase() : 'WHITE';
-    const k   = sz + '||' + col;
-    if(!map[k]) map[k] = {size:sz, colour:col, inP:0, outP:0, inC:0, outC:0};
-    if(e.type==='IN')  { map[k].inP+=e.pieces;  map[k].inC+=e.carats; }
+    const k = stockKey(e);
+    if(!map[k]) map[k] = { key:k, shape:e.shape||'', size:e.size||'', colour:e.colour||'WHITE', inP:0, outP:0, inC:0, outC:0 };
+    if(e.type==='IN')  { map[k].inP+=e.pieces; map[k].inC+=e.carats; }
     else               { map[k].outP+=e.pieces; map[k].outC+=e.carats; }
   });
-  return Object.values(map).sort((a,b)=>a.size.localeCompare(b.size)||a.colour.localeCompare(b.colour));
+  return Object.values(map).sort((a,b)=>(a.shape+a.size).localeCompare(b.shape+b.size));
 }
-
 function renderStock() {
-  const sq = (document.getElementById('stock-search')?.value||'').toLowerCase().trim();
+  const q    = (el('stock-search')?.value||'').toLowerCase().trim();
   const allRows = getStockMap();
-  const rows = sq ? allRows.filter(r => r.size.toLowerCase().includes(sq)) : allRows;
-  const cardsEl = document.getElementById('stock-cards');
-  const tbody   = document.getElementById('stock-tbody');
-  const tfoot   = document.getElementById('stock-tfoot');
+  const rows = q ? allRows.filter(r=>(r.shape+' '+r.size).toLowerCase().includes(q)) : allRows;
+  const cards = el('stock-cards');
+  const tbody = el('stock-tbody');
+  const tfoot = el('stock-tfoot');
 
-  if(!rows.length) {
-    cardsEl.innerHTML='<p class="empty">No data yet. Add entries to see stock.</p>';
-    tbody.innerHTML='<tr><td colspan="8" class="empty">No data yet</td></tr>';
-    tfoot.innerHTML=''; return;
-  }
-
-  // Cards — split in-stock vs out-of-stock
-  function makeCard(r) {
+  // Cards
+  const makeCard = r => {
     const np=r.inP-r.outP, nc=r.inC-r.outC;
-    const col = np>0?'var(--green)':np<0?'var(--red)':'var(--text3)';
-    const ps = parseShapeSize(r.size);
-    const colLabel = (r.colour&&r.colour!=='WHITE') ? ' · '+r.colour : '';
-    const displaySize = ps.size || r.size;
+    const col = np>0?'var(--brand)':np<0?'var(--red)':'var(--text3)';
+    const colLabel = (r.colour&&r.colour!=='WHITE') ? ` · ${r.colour}` : '';
     return `<div class="stock-card">
-      <div class="stock-card-size">💎 ${ps.shape||r.size} ${displaySize}${colLabel}</div>
+      <div class="stock-card-title">💎 ${r.shape} ${r.size}${colLabel}</div>
       <div class="stock-card-row"><span>IN pieces</span><span>${r.inP}</span></div>
       <div class="stock-card-row"><span>OUT pieces</span><span>${r.outP}</span></div>
       <div class="stock-card-row"><span>IN carats</span><span>${fmt3(r.inC)}</span></div>
       <div class="stock-card-row"><span>OUT carats</span><span>${fmt3(r.outC)}</span></div>
       <div class="stock-card-net">
-        <div>
-          <div class="stock-card-net-label">Net on hand</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:2px;">${fmt3(nc)} ct</div>
-        </div>
+        <div><div class="stock-card-net-label">Net on hand</div><div class="stock-card-net-ct">${fmt3(nc)} ct</div></div>
         <div class="stock-card-net-val" style="color:${col}">${np} pcs</div>
       </div>
     </div>`;
+  };
+
+  if(cards) {
+    const inStock  = rows.filter(r=>r.inP-r.outP>0);
+    const outStock = rows.filter(r=>r.inP-r.outP<=0);
+    let html = '';
+    if(inStock.length)  html += `<div class="stock-grid">${inStock.map(makeCard).join('')}</div>`;
+    if(outStock.length) html += `
+      <div style="margin-top:16px;">
+        <button class="btn sm" onclick="toggleOOS()" id="oos-btn" style="margin-bottom:10px;">▶ Show out of stock (${outStock.length})</button>
+        <div id="oos-cards" style="display:none;"><div class="stock-grid">${outStock.map(makeCard).join('')}</div></div>
+      </div>`;
+    cards.innerHTML = html || '<p class="empty">No data yet.</p>';
   }
-  const inStockRows  = rows.filter(r=>(r.inP-r.outP)>0);
-  const outStockRows = rows.filter(r=>(r.inP-r.outP)<=0);
-  let cardsHTML = '';
-  if(inStockRows.length) cardsHTML += `<div class="stock-summary">${inStockRows.map(makeCard).join('')}</div>`;
-  if(outStockRows.length) {
-    cardsHTML += `<div style="margin-top:16px;">
-      <button class="btn sm" onclick="toggleOutOfStock()" id="oos-toggle" style="margin-bottom:10px;">
-        ▶ Show out of stock (${outStockRows.length})
-      </button>
-      <div id="oos-cards" style="display:none;">
-        <div class="stock-summary">${outStockRows.map(makeCard).join('')}</div>
-      </div>
-    </div>`;
-  }
-  cardsEl.innerHTML = cardsHTML || '<p class="empty">No data yet.</p>';
 
   // Table
+  if(!tbody) return;
+  if(!rows.length) { tbody.innerHTML='<tr><td colspan="10" class="empty">No data yet</td></tr>'; if(tfoot) tfoot.innerHTML=''; return; }
   tbody.innerHTML = rows.map(r => {
     const np=r.inP-r.outP, nc=r.inC-r.outC;
-    const cl = np>0?'positive':np<0?'negative':'';
-    const ps = parseShapeSize(r.size);
-    const displayCol = (r.colour&&r.colour!=='WHITE') ? r.colour : '—';
-    const stockShape = r.shape || ps.shape || '—';
-    const stockSize  = r.size ? (ps.size || r.size) : '—';
+    const cl = np>0?'pos':np<0?'neg':'';
+    const colDisplay = (r.colour&&r.colour!=='WHITE')?r.colour:'—';
     return `<tr>
-      <td>${stockShape}</td>
-      <td>${stockSize}</td>
-      <td>${displayCol}</td>
-      <td class="mono">${r.inP}</td><td class="mono">${r.outP}</td>
+      <td>${r.shape||'—'}</td>
+      <td class="mono">${r.size||'—'}</td>
+      <td>${colDisplay}</td>
+      <td class="mono">${r.inP}</td>
+      <td class="mono">${r.outP}</td>
       <td class="mono ${cl}">${np}</td>
-      <td class="mono">${fmt3(r.inC)}</td><td class="mono">${fmt3(r.outC)}</td>
+      <td class="mono">${fmt3(r.inC)}</td>
+      <td class="mono">${fmt3(r.outC)}</td>
       <td class="mono ${cl}">${fmt3(nc)}</td>
       <td><span class="badge ${np>0?'in':'out'}">${np>0?'In Stock':'Deficit'}</span></td>
     </tr>`;
   }).join('');
-
   const tIP=rows.reduce((a,r)=>a+r.inP,0), tOP=rows.reduce((a,r)=>a+r.outP,0);
   const tIC=rows.reduce((a,r)=>a+r.inC,0), tOC=rows.reduce((a,r)=>a+r.outC,0);
-  tfoot.innerHTML=`<tr>
+  if(tfoot) tfoot.innerHTML=`<tr>
     <td colspan="3">TOTAL</td>
-    <td>${tIP}</td><td>${tOP}</td><td class="${tIP-tOP>0?'positive':'negative'}">${tIP-tOP}</td>
+    <td>${tIP}</td><td>${tOP}</td><td class="${tIP-tOP>0?'pos':'neg'}">${tIP-tOP}</td>
     <td>${fmt3(tIC)}</td><td>${fmt3(tOC)}</td><td>${fmt3(tIC-tOC)}</td><td></td>
   </tr>`;
 }
-
-// ── Export ─────────────────────────────────────────────────────────────────
-function toCSV(rows, headers) {
-  return [headers, ...rows].map(r => r.map(c => `"${String(c??'').replace(/"/g,'""')}"`).join(',')).join('\n');
+function toggleOOS() {
+  const cards = el('oos-cards');
+  const btn   = el('oos-btn');
+  if(!cards||!btn) return;
+  const open = cards.style.display==='block';
+  cards.style.display = open?'none':'block';
+  const n = cards.querySelectorAll('.stock-card').length;
+  btn.textContent = open ? `▶ Show out of stock (${n})` : `▼ Hide out of stock`;
 }
-function dlFile(content, filename, type) {
+
+// ── Settings ─────────────────────────────────────────────────────────────────
+function renderShapeChips() {
+  const c = el('shape-chips');
+  if(!c) return;
+  c.innerHTML = shapes.length
+    ? shapes.map(s=>`<div class="chip">${s}<button onclick="removeShape('${s.replace(/'/g,"\\'")}')">×</button></div>`).join('')
+    : '<span style="font-size:13px;color:var(--text3);">No shapes added.</span>';
+}
+function addShape() {
+  const inp = el('new-shape-input');
+  const v   = inp.value.trim().toUpperCase();
+  if(!v) return;
+  if(!shapes.includes(v)) { shapes.push(v); save(); renderShapeChips(); populateShapeDropdown(); }
+  inp.value='';
+}
+function removeShape(s) {
+  if(!confirm(`Remove shape "${s}"?`)) return;
+  shapes = shapes.filter(x=>x!==s); save(); renderShapeChips(); populateShapeDropdown();
+}
+
+function renderColourChips() {
+  const c = el('colour-chips');
+  if(!c) return;
+  const non = colours.filter(x=>x!=='WHITE');
+  c.innerHTML = non.length
+    ? non.map(s=>`<div class="chip">${s.charAt(0)+s.slice(1).toLowerCase()}<button onclick="removeColour('${s}')">×</button></div>`).join('')
+    : '<span style="font-size:13px;color:var(--text3);">No extra colours. White is always available.</span>';
+}
+function addColour() {
+  const inp = el('new-colour-input');
+  const v   = inp.value.trim().toUpperCase();
+  if(!v||v==='WHITE') return;
+  if(!colours.includes(v)) { colours.push(v); save(); renderColourChips(); populateColourDropdown(); }
+  inp.value='';
+}
+function removeColour(s) {
+  if(s==='WHITE') return;
+  if(!confirm(`Remove colour "${s}"?`)) return;
+  colours = colours.filter(x=>x!==s); save(); renderColourChips(); populateColourDropdown();
+}
+
+function renderSizeChips() {
+  const c = el('size-chips');
+  if(!c) return;
+  c.innerHTML = sizes.length
+    ? sizes.map(s=>`<div class="chip">${s}
+        <button class="rename-btn" onclick="openRenameModal('${s.replace(/'/g,"\\'")}')">✎</button>
+        <button onclick="removeSize('${s.replace(/'/g,"\\'")}')">×</button>
+      </div>`).join('')
+    : '<span style="font-size:13px;color:var(--text3);">No sizes added yet.</span>';
+}
+function addSize() {
+  const inp = el('new-size-input');
+  const v   = inp.value.trim().toUpperCase();
+  if(!v) return;
+  if(!sizes.includes(v)) { sizes.push(v); save(); renderSizeChips(); }
+  inp.value='';
+}
+function removeSize(s) {
+  sizes = sizes.filter(x=>x!==s); save(); renderSizeChips();
+}
+
+// Rename size modal
+function openRenameModal(s) {
+  renamingSize = s;
+  el('rename-old').value = s;
+  el('rename-new').value = s;
+  el('rename-msg').textContent = '';
+  el('rename-modal').classList.add('open');
+  setTimeout(()=>el('rename-new').focus(), 100);
+}
+function closeRenameModal() {
+  el('rename-modal').classList.remove('open');
+  renamingSize = null;
+}
+function saveRename() {
+  const nv  = el('rename-new').value.trim().toUpperCase();
+  const msg = el('rename-msg');
+  if(!nv) { msg.style.color='var(--red)'; msg.textContent='Please enter a name.'; return; }
+  if(nv===renamingSize) { closeRenameModal(); return; }
+  const idx = sizes.indexOf(renamingSize);
+  if(idx>-1) sizes[idx]=nv;
+  // Update all entries that used this size label
+  entries.forEach(e=>{
+    const full=(e.shape+' '+e.size).trim().toUpperCase();
+    if(full===renamingSize) {
+      // Parse new name
+      const parts=nv.split(' ');
+      if(parts.length>=2) { e.shape=parts[0]; e.size=parts.slice(1).join(' '); }
+    }
+  });
+  save(); scheduleDriveUpload();
+  renderSizeChips(); renderAll();
+  msg.style.color='var(--brand)'; msg.textContent='Renamed!';
+  setTimeout(closeRenameModal, 800);
+}
+el('rename-modal').addEventListener('click', e=>{ if(e.target===el('rename-modal')) closeRenameModal(); });
+
+// Clear all
+function clearAll() {
+  if(!confirm('Delete ALL entries, sizes, shapes and colours? This cannot be undone.')) return;
+  entries=[]; sizes=[]; shapes=[...DEFAULT_SHAPES]; colours=[...DEFAULT_COLOURS];
+  save(); renderAll(); renderShapeChips(); renderColourChips(); renderSizeChips();
+  showNotice('All data cleared.','warn');
+}
+
+// ── Export ───────────────────────────────────────────────────────────────────
+function dlFile(content, name, type) {
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([content],{type}));
-  a.download=filename; a.click();
+  a.download=name; a.click();
 }
-
+function toCSV(headers, rows) {
+  return [headers,...rows].map(r=>r.map(c=>`"${String(c??'').replace(/"/g,'""')}"`).join(',')).join('\n');
+}
 function exportCSV() {
-  const h=['Date','Type','Shape','Size','Pieces','Carats','Ref','Notes'];
-  const ps_=e=>parseShapeSize(e.size);
-  const rows=entries.map(e=>{const ps=ps_(e);return[fmtDate(e.date),e.type,e.shape||ps.shape||'',e.shape?e.size:ps.size||'',e.pieces,fmt3(e.carats),e.ref||'',e.notes||''];});
-  dlFile(toCSV(rows,h),'diamond_ledger_full.csv','text/csv');
+  const h=['Date','Type','Shape','Size','Colour','Pieces','Carats','Ref','Notes'];
+  const rows=entries.map(e=>[fmtDate(e.date),e.type,e.shape||'',e.size||'',(e.colour||'WHITE'),e.pieces,fmt3(e.carats),e.ref||'',e.notes||'']);
+  dlFile(toCSV(h,rows),'diamond_ledger_full.csv','text/csv');
 }
-
 function exportFilteredCSV() {
-  const filtered = getFiltered();
-  const from = document.getElementById('filter-from').value;
-  const to   = document.getElementById('filter-to').value;
-  const suffix = (from||to) ? `_${from||'start'}_to_${to||'end'}` : '_filtered';
-  const h=['Date','Type','Size/Grade','Pieces','Carats','Ref','Notes'];
-  const rows=filtered.map(e=>{const ps=parseShapeSize(e.size);return[fmtDate(e.date),e.type,e.shape||ps.shape||'',e.shape?e.size:ps.size||'',e.pieces,fmt3(e.carats),e.ref||'',e.notes||''];});
-  dlFile(toCSV(rows,h),`diamond_ledger${suffix}.csv`,'text/csv');
+  const filtered=getFiltered();
+  const from=val('fl-from'), to=val('fl-to');
+  const suffix=(from||to)?`_${from||'start'}_to_${to||'end'}`:'_filtered';
+  const h=['Date','Type','Shape','Size','Colour','Pieces','Carats','Ref','Notes'];
+  const rows=filtered.map(e=>[fmtDate(e.date),e.type,e.shape||'',e.size||'',(e.colour||'WHITE'),e.pieces,fmt3(e.carats),e.ref||'',e.notes||'']);
+  dlFile(toCSV(h,rows),`diamond_ledger${suffix}.csv`,'text/csv');
 }
-
 function exportStockCSV() {
-  const rows = getStockMap();
-  const h=['Size/Grade','IN (pcs)','OUT (pcs)','Net (pcs)','IN (ct)','OUT (ct)','Net (ct)'];
-  const data = rows.map(r=>[r.size,r.inP,r.outP,r.inP-r.outP,fmt(r.inC),fmt(r.outC),fmt(r.inC-r.outC)]);
-  dlFile(toCSV(data,h),'diamond_stock.csv','text/csv');
+  const rows=getStockMap();
+  const h=['Shape','Size','Colour','IN (pcs)','OUT (pcs)','Net (pcs)','IN (ct)','OUT (ct)','Net (ct)','Status'];
+  const data=rows.map(r=>{const np=r.inP-r.outP,nc=r.inC-r.outC;return[r.shape,r.size,(r.colour||'WHITE'),r.inP,r.outP,np,fmt3(r.inC),fmt3(r.outC),fmt3(nc),np>0?'In Stock':'Deficit'];});
+  dlFile(toCSV(h,data),'diamond_stock.csv','text/csv');
 }
-
 function exportJSON() {
-  const data = { entries, sizes, exportedAt: new Date().toISOString() };
-  dlFile(JSON.stringify(data,null,2),'diamond_ledger_backup.json','application/json');
+  dlFile(JSON.stringify({entries,sizes,shapes,colours,savedAt:new Date().toISOString()},null,2),'diamond_backup.json','application/json');
 }
-
 function importJSON(event) {
-  const file = event.target.files[0]; if(!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
+  const file=event.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
     try {
-      const data = JSON.parse(e.target.result);
-      if(data.entries) {
-        if(!confirm(`Import ${data.entries.length} entries? This will REPLACE your current data.`)) return;
-        entries = data.entries;
-        if(data.sizes)   sizes   = data.sizes;
-        if(data.shapes)  shapes  = data.shapes;
-        if(data.colours) colours = data.colours;
-        migrateEntries();
-        save(); populateSizeDatalist(); populateSizeFilter(); populateColourDropdown(); renderDashboard(); renderSizeChips(); renderShapeChips(); renderColourChips();
-        showNotice('Data imported successfully! Pushing to Drive...','success');
-        // Upload local data to Drive immediately — do NOT pull from Drive
-        if(driveConfig.token) {
-          uploadOnlyToDrive().then(() => {
-            showNotice('Data imported and synced to Drive successfully!','success');
-          });
-        }
-      } else { showNotice('Invalid backup file.','err'); }
+      const d=JSON.parse(e.target.result);
+      if(!d.entries) { showNotice('Invalid backup file.','err'); return; }
+      if(!confirm(`Import ${d.entries.length} entries? This replaces your current data.`)) return;
+      entries=d.entries;
+      if(d.sizes)   sizes=d.sizes;
+      if(d.shapes)  shapes=d.shapes;
+      if(d.colours) colours=d.colours;
+      migrateEntries();
+      save(); renderAll();
+      renderShapeChips(); renderColourChips(); renderSizeChips();
+      populateShapeDropdown(); populateColourDropdown();
+      showNotice(`Imported ${entries.length} entries successfully!`,'success');
+      if(driveCfg.token) uploadToDrive();
     } catch(e) { showNotice('Could not read file. Make sure it is a valid JSON backup.','err'); }
   };
   reader.readAsText(file);
   event.target.value='';
 }
-
 function exportReport(mode) {
-  const d = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
-  const src = mode==='stock' ? entries : getFiltered();
+  const d=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+  const src=mode==='stock'?entries:getFiltered();
   const inP=entries.filter(e=>e.type==='IN').reduce((a,e)=>a+e.pieces,0);
   const outP=entries.filter(e=>e.type==='OUT').reduce((a,e)=>a+e.pieces,0);
   const inC=entries.filter(e=>e.type==='IN').reduce((a,e)=>a+e.carats,0);
@@ -1195,278 +1066,177 @@ function exportReport(mode) {
   const sr=getStockMap();
   const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Diamond Report — ${d}</title>
 <style>body{font-family:Arial,sans-serif;color:#1a1a1a;padding:40px;max-width:960px;margin:0 auto;font-size:13px;}
-h1{font-size:22px;font-weight:700;margin-bottom:4px;}
+h1{font-size:22px;font-weight:700;margin-bottom:4px;color:#456158;}
 .sub{color:#888;font-size:12px;margin-bottom:28px;}
 .sumrow{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:28px;}
-.sbox{background:#f5f5ef;border-radius:8px;padding:12px 16px;min-width:120px;}
-.sbox .l{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
-.sbox .v{font-size:20px;font-weight:700;font-family:monospace;}
-h2{font-size:14px;font-weight:700;margin:28px 0 10px;padding-bottom:6px;border-bottom:2px solid #1a1a1a;}
+.sbox{background:#e8efed;border-radius:8px;padding:12px 16px;min-width:120px;}
+.sbox .l{font-size:10px;color:#456158;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;font-weight:700;}
+.sbox .v{font-size:20px;font-weight:700;font-family:monospace;color:#2e4139;}
+h2{font-size:14px;font-weight:700;margin:28px 0 10px;padding-bottom:6px;border-bottom:2px solid #456158;color:#456158;}
 table{width:100%;border-collapse:collapse;font-size:12px;}
-th{text-align:left;padding:7px 10px;background:#f0f0ea;font-size:10px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #ddd;}
+th{text-align:left;padding:7px 10px;background:#e8efed;font-size:10px;font-weight:700;color:#456158;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #b8cec8;}
 td{padding:7px 10px;border-bottom:1px solid #eee;font-family:monospace;}
-td:first-child{font-family:Arial,sans-serif;}
-tfoot td{font-weight:700;background:#f5f5ef;border-top:2px solid #ccc;}
-.in{color:#2d6a4f;font-weight:600;}.out{color:#9b2335;font-weight:600;}
+td:first-child,td:nth-child(2),td:nth-child(3){font-family:Arial,sans-serif;}
+tfoot td{font-weight:700;background:#e8efed;border-top:2px solid #b8cec8;}
+.in-badge{color:#456158;font-weight:700;font-family:Arial,sans-serif;}
+.out-badge{color:#9b2335;font-weight:700;font-family:Arial,sans-serif;}
 .footer{margin-top:32px;color:#aaa;font-size:11px;border-top:1px solid #eee;padding-top:10px;}
 @media print{.no-print{display:none;}}</style></head><body>
 <h1>💎 Diamond Ledger Report</h1>
-<div class="sub">Generated: ${d} &nbsp;·&nbsp; Total entries: ${entries.length}</div>
+<div class="sub">Generated: ${d} · Total entries: ${entries.length}</div>
 <div class="sumrow">
 <div class="sbox"><div class="l">IN pcs</div><div class="v">${inP}</div></div>
 <div class="sbox"><div class="l">OUT pcs</div><div class="v">${outP}</div></div>
 <div class="sbox"><div class="l">Net pcs</div><div class="v">${inP-outP}</div></div>
-<div class="sbox"><div class="l">IN ct</div><div class="v">${fmt(inC)}</div></div>
-<div class="sbox"><div class="l">OUT ct</div><div class="v">${fmt(outC)}</div></div>
-<div class="sbox"><div class="l">Net ct</div><div class="v">${fmt(inC-outC)}</div></div>
+<div class="sbox"><div class="l">IN ct</div><div class="v">${fmt3(inC)}</div></div>
+<div class="sbox"><div class="l">OUT ct</div><div class="v">${fmt3(outC)}</div></div>
+<div class="sbox"><div class="l">Net ct</div><div class="v">${fmt3(inC-outC)}</div></div>
 </div>
-<h2>Current stock by size / grade</h2>
-<table><thead><tr><th>Size/Grade</th><th>IN pcs</th><th>OUT pcs</th><th>Net pcs</th><th>IN ct</th><th>OUT ct</th><th>Net ct</th></tr></thead>
-<tbody>${sr.map(r=>{const np=r.inP-r.outP,nc=r.inC-r.outC;return`<tr><td>${r.size}</td><td>${r.inP}</td><td>${r.outP}</td><td>${np}</td><td>${fmt(r.inC)}</td><td>${fmt(r.outC)}</td><td>${fmt(nc)}</td></tr>`;}).join('')}</tbody>
-<tfoot><tr><td>TOTAL</td><td>${sr.reduce((a,r)=>a+r.inP,0)}</td><td>${sr.reduce((a,r)=>a+r.outP,0)}</td><td>${sr.reduce((a,r)=>a+r.inP-r.outP,0)}</td><td>${fmt(sr.reduce((a,r)=>a+r.inC,0))}</td><td>${fmt(sr.reduce((a,r)=>a+r.outC,0))}</td><td>${fmt(sr.reduce((a,r)=>a+r.inC-r.outC,0))}</td></tr></tfoot>
+<h2>Current stock by size</h2>
+<table><thead><tr><th>Shape</th><th>Size</th><th>Colour</th><th>IN pcs</th><th>OUT pcs</th><th>Net pcs</th><th>IN ct</th><th>OUT ct</th><th>Net ct</th><th>Status</th></tr></thead>
+<tbody>${sr.map(r=>{const np=r.inP-r.outP,nc=r.inC-r.outC;return`<tr><td>${r.shape}</td><td>${r.size}</td><td>${r.colour||'WHITE'}</td><td>${r.inP}</td><td>${r.outP}</td><td>${np}</td><td>${fmt3(r.inC)}</td><td>${fmt3(r.outC)}</td><td>${fmt3(nc)}</td><td>${np>0?'In Stock':'Deficit'}</td></tr>`;}).join('')}</tbody>
+<tfoot><tr><td colspan="3">TOTAL</td><td>${sr.reduce((a,r)=>a+r.inP,0)}</td><td>${sr.reduce((a,r)=>a+r.outP,0)}</td><td>${sr.reduce((a,r)=>a+r.inP-r.outP,0)}</td><td>${fmt3(sr.reduce((a,r)=>a+r.inC,0))}</td><td>${fmt3(sr.reduce((a,r)=>a+r.outC,0))}</td><td>${fmt3(sr.reduce((a,r)=>a+r.inC-r.outC,0))}</td><td></td></tr></tfoot>
 </table>
 <h2>Transaction ledger</h2>
-<table><thead><tr><th>#</th><th>Date</th><th>Type</th><th>Size/Grade</th><th>Pieces</th><th>Carats</th><th>Ref</th><th>Notes</th></tr></thead>
-<tbody>${src.map((e,i)=>`<tr><td>${src.length-i}</td><td>${fmtDate(e.date)}</td><td class="${e.type.toLowerCase()}">${e.type}</td><td>${e.size||'—'}</td><td>${e.pieces}</td><td>${fmt(e.carats)}</td><td>${e.ref||'—'}</td><td>${e.notes||'—'}</td></tr>`).join('')}</tbody>
+<table><thead><tr><th>#</th><th>Date</th><th>Type</th><th>Shape</th><th>Size</th><th>Colour</th><th>Pieces</th><th>Carats</th><th>Ref</th><th>Notes</th></tr></thead>
+<tbody>${src.map((e,i)=>`<tr><td>${src.length-i}</td><td>${fmtDate(e.date)}</td><td class="${e.type==='IN'?'in-badge':'out-badge'}">${e.type}</td><td>${e.shape||''}</td><td>${e.size||''}</td><td>${e.colour||'WHITE'}</td><td>${e.pieces}</td><td>${fmt3(e.carats)}</td><td>${e.ref||'—'}</td><td>${e.notes||'—'}</td></tr>`).join('')}</tbody>
 </table>
-<div class="footer">Diamond Ledger &nbsp;·&nbsp; ${d}</div>
-<br><button class="no-print" onclick="window.print()" style="padding:8px 20px;font-size:13px;cursor:pointer;font-family:Arial;">🖨 Print / Save as PDF</button>
+<div class="footer">Diamond Ledger · ${d}</div>
+<br><button class="no-print" onclick="window.print()" style="padding:8px 20px;font-size:13px;cursor:pointer;background:#456158;color:#fff;border:none;border-radius:6px;">🖨 Print / Save as PDF</button>
 </body></html>`;
   dlFile(html,'diamond_report.html','text/html');
 }
 
-// ── Google Drive (OAuth2 GAPI) ─────────────────────────────────────────────
-const DRIVE_FILE = 'diamond_ledger_data.json';
-const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+// ── Migration ────────────────────────────────────────────────────────────────
+function migrateEntries() {
+  const SHAPES = ['ROUND','PRINCESS','PEAR','OVAL','MARQUISE','HEART','CUSHION','EMERALD','TRILLION','RADIANT','LOZENGE','BAGUETTE'];
+  let changed=false;
+  entries.forEach(e=>{
+    const sz = (e.size||'').trim();
+    const sh = (e.shape||'').toUpperCase().trim();
+    // Case 1: no shape set — try to parse from size
+    if(!sh && sz) {
+      const s=sz.toUpperCase();
+      const found=SHAPES.find(sh=>s.startsWith(sh+' ')||s===sh);
+      if(found) { e.shape=found; e.size=sz.slice(found.length).trim(); changed=true; }
+    }
+    // Case 2: shape is set but size STILL starts with shape name — strip it
+    if(sh && sz.toUpperCase().startsWith(sh+' ')) {
+      e.size = sz.slice(sh.length).trim(); changed=true;
+    }
+    if(!e.colour) { e.colour='WHITE'; changed=true; }
+  });
+  if(changed) save();
+}
 
+// ── Google Drive ─────────────────────────────────────────────────────────────
 function setDriveStatus(status, label) {
-  const dot = document.getElementById('drive-dot');
-  const lbl = document.getElementById('drive-label');
-  dot.className = 'drive-dot ' + status;
-  lbl.textContent = 'Drive: ' + label;
+  const dot=el('drive-dot'); const lbl=el('drive-label');
+  if(dot) { dot.className='drive-dot'; if(status) dot.classList.add(status); }
+  if(lbl) lbl.textContent='Drive: '+label;
 }
-
 function toggleDrivePanel() {
-  const p = document.getElementById('drive-panel');
-  p.classList.toggle('open');
-  if(driveConfig.clientId) document.getElementById('client-id-input').value = driveConfig.clientId;
+  const p=el('drive-panel');
+  if(p) p.classList.toggle('open');
+  if(driveCfg.clientId) { const ci=el('client-id-input'); if(ci) ci.value=driveCfg.clientId; }
 }
-
-function initGoogleAuth() {
-  const clientId = document.getElementById('client-id-input').value.trim();
-  if(!clientId) { showNotice('Please enter your Google OAuth Client ID.','warn'); return; }
-  driveConfig.clientId = clientId; save();
-  const script = document.createElement('script');
-  script.src = 'https://accounts.google.com/gsi/client';
-  script.onload = () => startGoogleAuth();
-  document.head.appendChild(script);
+function initGDrive() {
+  const clientId=el('client-id-input')?.value.trim();
+  if(!clientId) { showNotice('Please enter your Client ID.','warn'); return; }
+  driveCfg.clientId=clientId; save();
+  const s=document.createElement('script');
+  s.src='https://accounts.google.com/gsi/client';
+  s.onload=startGAuth;
+  document.head.appendChild(s);
 }
-
-function startGoogleAuth() {
+function startGAuth() {
   setDriveStatus('busy','Authenticating...');
-  const client = google.accounts.oauth2.initTokenClient({
-    client_id: driveConfig.clientId,
-    scope: SCOPES,
-    callback: (resp) => {
+  const client=google.accounts.oauth2.initTokenClient({
+    client_id: driveCfg.clientId,
+    scope: 'https://www.googleapis.com/auth/drive.file',
+    callback: resp=>{
       if(resp.access_token) {
-        driveConfig.token = resp.access_token; save();
+        driveCfg.token=resp.access_token; save();
         setDriveStatus('ok','Connected');
         showNotice('Google Drive connected! Click Sync to load your data.','success');
-        document.getElementById('drive-panel').classList.remove('open');
-      } else { setDriveStatus('err','Auth failed'); showNotice('Google auth failed. Check your Client ID.','err'); }
+        el('drive-panel')?.classList.remove('open');
+      } else { setDriveStatus('err','Auth failed'); showNotice('Auth failed. Check your Client ID.','err'); }
     }
   });
   client.requestAccessToken();
 }
-
 async function syncDrive() {
-  if(!driveConfig.token) { showNotice('Google Drive not connected. Click Drive status to set up.','warn'); return; }
+  if(!driveCfg.token) { showNotice('Google Drive not connected. Click the Drive status to set up.','warn'); return; }
   setDriveStatus('busy','Syncing...');
   try {
-    // Find file
-    const search = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${DRIVE_FILE}'+and+trashed=false&fields=files(id,name)`,
-      {headers:{'Authorization':'Bearer '+driveConfig.token}});
+    const search=await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${DRIVE_FILE}'+and+trashed=false&fields=files(id,name)`,
+      {headers:{'Authorization':'Bearer '+driveCfg.token}});
     if(search.status===401){setDriveStatus('err','Token expired');showNotice('Drive session expired. Please reconnect.','warn',0);return;}
-    const sdata = await search.json();
-    const files = sdata.files||[];
-
+    const sdata=await search.json();
+    const files=sdata.files||[];
     if(files.length===0) {
-      // Create new file
-      await uploadDriveFile(null);
+      await uploadToDrive();
     } else {
-      const fileId = files[0].id;
-      // Download and merge
-      const dlRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
-        {headers:{'Authorization':'Bearer '+driveConfig.token}});
-      const text = await dlRes.text();
+      const fileId=files[0].id;
+      const dl=await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,{headers:{'Authorization':'Bearer '+driveCfg.token}});
+      const text=await dl.text();
       try {
-        const remote = JSON.parse(text);
-        const remoteEntries = Array.isArray(remote) ? remote : (remote.entries||[]);
-        const remoteSizes   = remote.sizes||[];
-        const remoteShapes  = remote.shapes||[];
-        const localMap = {};
+        const remote=JSON.parse(text);
+        const remoteEntries=Array.isArray(remote)?remote:(remote.entries||[]);
+        const localMap={};
         entries.forEach(e=>localMap[e.id]=e);
         remoteEntries.forEach(e=>localMap[e.id]=e);
-        entries = Object.values(localMap).sort((a,b)=>b.date.localeCompare(a.date)||(b.id-a.id));
-        sizes   = [...new Set([...sizes,...remoteSizes])];
-        shapes  = [...new Set([...shapes,...remoteShapes])];
-        const remoteColours = remote.colours||[];
-        colours = [...new Set([...colours,...remoteColours])];
+        entries=Object.values(localMap).sort((a,b)=>b.date.localeCompare(a.date)||(b.id-a.id));
+        if(remote.sizes)   sizes=[...new Set([...sizes,...(remote.sizes||[])])];
+        if(remote.shapes)  shapes=[...new Set([...shapes,...(remote.shapes||[])])];
+        if(remote.colours) colours=[...new Set([...colours,...(remote.colours||[])])];
         migrateEntries();
-        save(); populateSizeDatalist(); populateSizeFilter(); populateColourDropdown();
-      } catch(e){/* use local */}
-      // Upload merged
-      await uploadDriveFile(fileId);
+        save();
+      } catch(e){}
+      await uploadToDrive(fileId);
     }
     setDriveStatus('ok','Synced');
-    renderDashboard(); renderLedger(); renderStock(); renderSizeChips(); renderShapeChips(); renderColourChips();
+    renderAll(); renderShapeChips(); renderColourChips(); renderSizeChips();
+    populateShapeDropdown(); populateColourDropdown();
     showNotice('Synced with Google Drive!','success');
-  } catch(err) {
-    setDriveStatus('err','Error'); showNotice('Drive sync failed: '+err.message,'err');
-  }
+  } catch(err) { setDriveStatus('err','Error'); showNotice('Drive sync failed: '+err.message,'err'); }
 }
-
-async function uploadDriveFile(fileId) {
-  const content = JSON.stringify({entries,sizes,shapes,colours,savedAt:new Date().toISOString()},null,2);
-  const blob = new Blob([content],{type:'application/json'});
-  const meta = JSON.stringify({name:DRIVE_FILE,mimeType:'application/json'});
-  const form = new FormData();
+async function uploadToDrive(fileId) {
+  if(!driveCfg.token) return;
+  const content=JSON.stringify({entries,sizes,shapes,colours,savedAt:new Date().toISOString()},null,2);
+  const blob=new Blob([content],{type:'application/json'});
+  const meta=JSON.stringify({name:DRIVE_FILE,mimeType:'application/json'});
+  const form=new FormData();
   form.append('metadata',new Blob([meta],{type:'application/json'}));
   form.append('file',blob);
-  const url = fileId
-    ? `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`
-    : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
-  await fetch(url,{method:fileId?'PATCH':'POST',headers:{'Authorization':'Bearer '+driveConfig.token},body:form});
+  if(!fileId) {
+    const search=await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${DRIVE_FILE}'+and+trashed=false&fields=files(id)`,
+      {headers:{'Authorization':'Bearer '+driveCfg.token}});
+    const sd=await search.json(); fileId=(sd.files||[])[0]?.id;
+  }
+  const url=fileId
+    ?`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`
+    :`https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`;
+  await fetch(url,{method:fileId?'PATCH':'POST',headers:{'Authorization':'Bearer '+driveCfg.token},body:form});
+  setDriveStatus('ok','Saved');
 }
-
-function autoSyncDrive() {
-  if(driveConfig.token) uploadOnlyToDrive();
-}
-
-function clearAllData() {
-  if(!confirm('Delete ALL entries and sizes? This cannot be undone.')) return;
-  entries=[]; sizes=[]; save(); populateSizeDatalist();
-  renderDashboard(); renderSizeChips();
-  showNotice('All data cleared.','warn');
-}
-
-
-// ── Edit Size Modal ────────────────────────────────────────────────────────
-let editingSizeName = null;
-
-function openEditSizeModal(s) {
-  editingSizeName = s;
-  document.getElementById('edit-size-old').value = s;
-  document.getElementById('edit-size-new').value = s;
-  document.getElementById('edit-size-msg').textContent = '';
-  document.getElementById('edit-size-modal').style.display='flex';
-  setTimeout(()=>document.getElementById('edit-size-new').focus(),100);
-}
-
-function closeEditSizeModal() {
-  document.getElementById('edit-size-modal').style.display='none';
-  editingSizeName = null;
-}
-
-function saveEditSize() {
-  const newName = document.getElementById('edit-size-new').value.trim().toUpperCase();
-  const msg = document.getElementById('edit-size-msg');
-  if(!newName) { msg.style.color='var(--red)'; msg.textContent='Please enter a name.'; return; }
-  if(newName===editingSizeName) { closeEditSizeModal(); return; }
-  // Rename in sizes list
-  const idx = sizes.indexOf(editingSizeName);
-  if(idx>-1) sizes[idx] = newName;
-  // Rename in all entries
-  entries.forEach(e=>{ if(e.size===editingSizeName) e.size=newName; });
-  save();
+function scheduleDriveUpload() {
   clearTimeout(syncTimer);
-  syncTimer = setTimeout(()=>{ if(driveConfig.token) uploadOnlyToDrive(); }, 3000);
-  populateSizeDatalist(); renderSizeChips(); renderDashboard(); renderLedger(); renderStock();
-  msg.style.color='var(--green)'; msg.textContent='Renamed successfully!';
-  setTimeout(closeEditSizeModal, 800);
+  syncTimer=setTimeout(()=>{ if(driveCfg.token) uploadToDrive(); }, 2500);
 }
 
-// ── Size stock preview on New Entry ───────────────────────────────────────
-function updateSizePreview() {
-  const shape  = (document.getElementById('f-shape')?.value||'').toUpperCase().trim();
-  const colour = (document.getElementById('f-colour')?.value||'WHITE').toUpperCase().trim();
-  const length = parseFloat(document.getElementById('f-length')?.value||0);
-  const width  = shape==='ROUND' ? 0 : parseFloat(document.getElementById('f-width')?.value||0);
-  const preview = document.getElementById('size-stock-preview');
-  const nameEl  = document.getElementById('preview-size-name');
-  const valEl   = document.getElementById('preview-stock-val');
-  if(!shape || !length) { if(preview) preview.style.display='none'; return; }
-  const label = buildSizeLabel(shape, length, width, colour);
-  const map  = getStockMap();
-  const row  = map.find(r=>r.size.toUpperCase()===label.toUpperCase());
-  const netP = row ? row.inP - row.outP : 0;
-  const netC = row ? row.inC - row.outC : 0;
-  if(nameEl) nameEl.textContent = label;
-  if(valEl) {
-    valEl.textContent = `${netP} pcs · ${parseFloat(netC).toFixed(3)} ct`;
-    valEl.style.color = netP>0 ? 'var(--green)' : netP<0 ? 'var(--red)' : 'var(--text3)';
-  }
-  if(preview) preview.style.display='flex';
-}
-
-// ── Init ───────────────────────────────────────────────────────────────────
-
-// ── Password ───────────────────────────────────────────────────────────────
-const PWD_HASH = 'a44791d254ba49bb687c58be391a5e27bf699426ff62a616d22e0e699c7be1cd';
-
-async function sha256(msg) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-
-async function checkPassword() {
-  const val = document.getElementById('lock-input').value;
-  const hash = await sha256(val);
-  if(hash === PWD_HASH) {
-    sessionStorage.setItem('dl_auth','1');
-    document.getElementById('lock-screen').style.display='none';
-    document.getElementById('main-app').style.display='block';
-    initApp();
-  } else {
-    const inp = document.getElementById('lock-input');
-    inp.classList.remove('shake');
-    void inp.offsetWidth;
-    inp.classList.add('shake');
-    document.getElementById('lock-error').textContent='Incorrect password. Please try again.';
-    inp.value='';
-    setTimeout(()=>inp.classList.remove('shake'),400);
-  }
-}
-
-function togglePwd() {
-  const inp = document.getElementById('lock-input');
-  inp.type = inp.type==='password' ? 'text' : 'password';
-}
-
-// Check if already authenticated this session
-if(sessionStorage.getItem('dl_auth')==='1') {
-  document.getElementById('lock-screen').style.display='none';
-  document.getElementById('main-app').style.display='block';
-}
-
+// ── Init ─────────────────────────────────────────────────────────────────────
 function initApp() {
   migrateEntries();
-  document.getElementById('f-date').value = today();
-  const lastType = LS.get('dl_last_type') || 'IN';
-  document.getElementById('f-type').value = lastType;
-  // Width visible by default, only hidden when Round is selected
-  const widthWrap = document.getElementById('f-width-wrap');
-  if(widthWrap) widthWrap.style.display='flex';
-  populateSizeDatalist();
-  populateSizeFilter();
+  el('f-date').value=today();
+  el('f-type').value=LS.get('dl_last_type')||'IN';
+  el('f-width-wrap').style.display='flex';
+  populateShapeDropdown();
   populateColourDropdown();
   renderDashboard();
-  renderShapeChips();
-  renderColourChips();
-  if(driveConfig.clientId) setDriveStatus('','Configured (not synced)');
+  if(driveCfg.clientId) setDriveStatus('','Configured (not synced)');
 }
 
-// Auto-init if already unlocked
 if(sessionStorage.getItem('dl_auth')==='1') initApp();
 </script>
 </body>
