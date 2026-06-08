@@ -266,7 +266,7 @@ tfoot td{padding:10px 14px;font-weight:600;background:var(--surface2);border-top
         <div class="form-grid">
           <div class="field"><label>Date *</label><input type="date" id="f-date"></div>
           <div class="field"><label>Type *</label>
-            <select id="f-type" onchange="LS.set('dl_last_type',this.value)">
+            <select id="f-type" onchange="LS.set('dl_last_type',this.value);updatePreview()">
               <option value="IN">IN (Received)</option>
               <option value="OUT">OUT (Dispatched)</option>
             </select>
@@ -278,7 +278,7 @@ tfoot td{padding:10px 14px;font-weight:600;background:var(--surface2);border-top
           </div>
           <div class="field"><label>Length (MM) *</label><input type="number" id="f-length" placeholder="0.00" step="0.01" min="0" oninput="updatePreview()"></div>
           <div class="field" id="f-width-wrap"><label>Width (MM) *</label><input type="number" id="f-width" placeholder="0.00" step="0.01" min="0" oninput="updatePreview()"></div>
-          <div class="field"><label>No. of Pieces *</label><input type="number" id="f-pieces" placeholder="0" min="0" step="1"></div>
+          <div class="field"><label>No. of Pieces *</label><input type="number" id="f-pieces" placeholder="0" min="0" step="1" oninput="updatePreview()"></div>
           <div class="field"><label>Carat Weight *</label><input type="number" id="f-carats" placeholder="0.000" step="0.001" min="0"></div>
           <div class="field"><label>Colour</label>
             <select id="f-colour" onchange="updatePreview()"><option value="WHITE">White (Default)</option></select>
@@ -286,9 +286,12 @@ tfoot td{padding:10px 14px;font-weight:600;background:var(--surface2);border-top
           <div class="field"><label>Invoice / Ref No.</label><input type="text" id="f-ref" placeholder="Optional"></div>
           <div class="field" style="grid-column:span 2;"><label>Notes</label><input type="text" id="f-notes" placeholder="Optional remarks"></div>
         </div>
-        <div id="size-preview" class="size-preview">
-          <span style="color:var(--text2)">Stock for <strong id="preview-label"></strong>:</span>
-          <span id="preview-val" style="font-family:'DM Mono',monospace;font-weight:600;font-size:15px;"></span>
+        <div id="size-preview" class="size-preview" style="flex-direction:column;align-items:flex-start;gap:6px;">
+          <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
+            <span style="color:var(--text2)">Stock for <strong id="preview-label"></strong>:</span>
+            <span id="preview-val" style="font-family:'DM Mono',monospace;font-weight:600;font-size:15px;"></span>
+          </div>
+          <div id="preview-warn" style="display:none;font-size:12px;font-weight:600;color:var(--amber);background:var(--amber-bg);padding:6px 10px;border-radius:var(--radius-sm);width:100%;border:1px solid #f0d89a;"></div>
         </div>
         <div class="btn-row" style="margin-top:14px;">
           <button class="btn primary" onclick="addEntry()">✓ Save Entry</button>
@@ -602,17 +605,33 @@ function updatePreview() {
   const colour = val('f-colour').toUpperCase().trim() || 'WHITE';
   const length = parseFloat(val('f-length')||0);
   const width  = shape==='ROUND' ? 0 : parseFloat(val('f-width')||0);
+  const type   = val('f-type');
+  const pieces = parseFloat(val('f-pieces')||0);
   const prev   = el('size-preview');
   if(!shape || !length) { if(prev) prev.style.display='none'; return; }
-  const label  = buildLabel(shape, length, width, colour);
   const map    = getStockMap();
   const row    = map.find(r => r.key === stockKey({shape, size: shape==='ROUND'?fmt2(length):fmt2(length)+'X'+fmt2(width), colour}));
   const netP   = row ? row.inP - row.outP : 0;
   const netC   = row ? row.inC - row.outC : 0;
+  const label  = buildLabel(shape, length, width, colour);
   el('preview-label').textContent = label;
   const valEl  = el('preview-val');
-  valEl.textContent = `${netP} pcs · ${fmt3(netC)} ct`;
-  valEl.style.color = netP > 0 ? 'var(--brand)' : netP < 0 ? 'var(--red)' : 'var(--text3)';
+  const warnEl = el('preview-warn');
+
+  // Show deficit warning if OUT entry will create or worsen deficit
+  if(type === 'OUT' && netP <= 0) {
+    valEl.textContent = `${netP} pcs · ${fmt3(netC)} ct`;
+    valEl.style.color = 'var(--red)';
+    if(warnEl) { warnEl.style.display='flex'; warnEl.textContent = '⚠ No stock available for this size.'; }
+  } else if(type === 'OUT' && pieces > 0 && pieces > netP) {
+    valEl.textContent = `${netP} pcs · ${fmt3(netC)} ct`;
+    valEl.style.color = 'var(--amber)';
+    if(warnEl) { warnEl.style.display='flex'; warnEl.textContent = `⚠ Only ${netP} pcs in stock. This entry will create a deficit.`; }
+  } else {
+    valEl.textContent = `${netP} pcs · ${fmt3(netC)} ct`;
+    valEl.style.color = netP > 0 ? 'var(--brand)' : netP < 0 ? 'var(--red)' : 'var(--text3)';
+    if(warnEl) warnEl.style.display='none';
+  }
   if(prev) prev.style.display = 'flex';
 }
 
@@ -642,6 +661,25 @@ function addEntry() {
 
   // Size stored as just the measurement, shape stored separately
   const size = shape==='ROUND' ? fmt2(length) : fmt2(length)+'X'+fmt2(width);
+
+  // Check for deficit on OUT entries and warn user
+  if(type === 'OUT') {
+    const smap = getStockMap();
+    const srow = smap.find(r => r.key === stockKey({shape, size, colour}));
+    const netP = srow ? srow.inP - srow.outP : 0;
+    if(netP - pieces < 0) {
+      const deficit = pieces - netP;
+      const willHave = netP - pieces;
+      const confirmed = confirm(
+        '⚠ Deficit Warning\n\n' +
+        'Current stock: ' + netP + ' pcs\n' +
+        'You are dispatching: ' + pieces + ' pcs\n' +
+        'Result after this entry: ' + willHave + ' pcs (short by ' + Math.abs(willHave) + ' pcs)\n\n' +
+        'Are you sure you want to proceed?'
+      );
+      if(!confirmed) return;
+    }
+  }
 
   // Add to sizes list if new (store just the measurement)
   if(!sizes.includes(size)) { sizes.push(size); save(); }
