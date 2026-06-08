@@ -210,24 +210,16 @@ tfoot td{padding:10px 14px;font-weight:600;background:var(--surface2);border-top
     <div class="topbar-right">
       <div class="drive-bar" onclick="toggleDrivePanel()">
         <div class="drive-dot" id="drive-dot"></div>
-        <span id="drive-label">Drive: not configured</span>
-        <span style="color:var(--text3);font-size:11px;margin-left:4px;">⚙</span>
+        <span id="drive-label">Connecting...</span>
       </div>
-      <button class="btn sm" onclick="syncDrive()">↻ Sync</button>
+      <button class="btn sm" onclick="loadFromDB()">↻ Refresh</button>
     </div>
   </div>
 
-  <!-- Drive Panel -->
+  <!-- Backup Panel -->
   <div class="drive-panel" id="drive-panel">
-    <h3>Google Drive Sync</h3>
-    <p>Enter your Google OAuth Client ID to enable automatic sync across devices.</p>
-    <div class="drive-warn">Simpler option: use Export/Import JSON below to back up manually via Google Drive folder.</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
-      <input type="text" id="client-id-input" placeholder="Paste Google OAuth Client ID..." style="flex:1;min-width:220px;padding:8px 11px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;">
-      <button class="btn primary" onclick="initGDrive()">Connect Drive</button>
-      <button class="btn" onclick="toggleDrivePanel()">Close</button>
-    </div>
-    <div class="section-sep" style="margin:12px 0;"></div>
+    <h3>Data Backup</h3>
+    <p>Your data is automatically saved to the cloud database. Use these options for manual backup.</p>
     <div class="btn-row">
       <button class="btn" onclick="exportJSON()">⬇ Export JSON backup</button>
       <button class="btn" onclick="document.getElementById('import-file').click()">⬆ Import JSON backup</button>
@@ -455,7 +447,6 @@ tfoot td{padding:10px 14px;font-weight:600;background:var(--surface2);border-top
 <script>
 // ── Constants ────────────────────────────────────────────────────────────────
 const PWD_HASH = 'a44791d254ba49bb687c58be391a5e27bf699426ff62a616d22e0e699c7be1cd';
-const DRIVE_FILE = 'diamond_ledger_data.json';
 const DEFAULT_SHAPES = ['ROUND','PRINCESS','PEAR','OVAL','MARQUISE','HEART','CUSHION','EMERALD','TRILLION','RADIANT','LOZENGE','BAGUETTE'];
 const DEFAULT_COLOURS = ['WHITE','YELLOW','PINK','BLUE','GREEN','BROWN','BLACK'];
 
@@ -469,7 +460,6 @@ let entries  = LS.get('dl_entries')  || [];
 let sizes    = LS.get('dl_sizes')    || [];
 let shapes   = LS.get('dl_shapes')   || [...DEFAULT_SHAPES];
 let colours  = LS.get('dl_colours')  || [...DEFAULT_COLOURS];
-let driveCfg = LS.get('dl_drive')    || { clientId: '', token: '' };
 let syncTimer = null;
 let renamingSize = null;
 
@@ -478,7 +468,6 @@ function save() {
   LS.set('dl_sizes', sizes);
   LS.set('dl_shapes', shapes);
   LS.set('dl_colours', colours);
-  LS.set('dl_drive', driveCfg);
 }
 
 // ── Utils ────────────────────────────────────────────────────────────────────
@@ -1050,7 +1039,7 @@ function importJSON(event) {
       renderShapeChips(); renderColourChips(); renderSizeChips();
       populateShapeDropdown(); populateColourDropdown();
       showNotice(`Imported ${entries.length} entries successfully!`,'success');
-      if(driveCfg.token) uploadToDrive();
+      saveToDB();
     } catch(e) { showNotice('Could not read file. Make sure it is a valid JSON backup.','err'); }
   };
   reader.readAsText(file);
@@ -1129,100 +1118,60 @@ function migrateEntries() {
   if(changed) save();
 }
 
-// ── Google Drive ─────────────────────────────────────────────────────────────
+// ── MongoDB API ───────────────────────────────────────────────────────────────
+const API_URL = 'https://d-ledger-api.vercel.app/api';
+
 function setDriveStatus(status, label) {
   const dot=el('drive-dot'); const lbl=el('drive-label');
   if(dot) { dot.className='drive-dot'; if(status) dot.classList.add(status); }
-  if(lbl) lbl.textContent='Drive: '+label;
+  if(lbl) lbl.textContent=label;
 }
 function toggleDrivePanel() {
   const p=el('drive-panel');
   if(p) p.classList.toggle('open');
-  if(driveCfg.clientId) { const ci=el('client-id-input'); if(ci) ci.value=driveCfg.clientId; }
 }
-function initGDrive() {
-  const clientId=el('client-id-input')?.value.trim();
-  if(!clientId) { showNotice('Please enter your Client ID.','warn'); return; }
-  driveCfg.clientId=clientId; save();
-  const s=document.createElement('script');
-  s.src='https://accounts.google.com/gsi/client';
-  s.onload=startGAuth;
-  document.head.appendChild(s);
-}
-function startGAuth() {
-  setDriveStatus('busy','Authenticating...');
-  const client=google.accounts.oauth2.initTokenClient({
-    client_id: driveCfg.clientId,
-    scope: 'https://www.googleapis.com/auth/drive.file',
-    callback: resp=>{
-      if(resp.access_token) {
-        driveCfg.token=resp.access_token; save();
-        setDriveStatus('ok','Connected');
-        showNotice('Google Drive connected! Click Sync to load your data.','success');
-        el('drive-panel')?.classList.remove('open');
-      } else { setDriveStatus('err','Auth failed'); showNotice('Auth failed. Check your Client ID.','err'); }
-    }
-  });
-  client.requestAccessToken();
-}
-async function syncDrive() {
-  if(!driveCfg.token) { showNotice('Google Drive not connected. Click the Drive status to set up.','warn'); return; }
-  setDriveStatus('busy','Syncing...');
+
+async function loadFromDB() {
+  setDriveStatus('busy','Loading...');
   try {
-    const search=await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${DRIVE_FILE}'+and+trashed=false&fields=files(id,name)`,
-      {headers:{'Authorization':'Bearer '+driveCfg.token}});
-    if(search.status===401){setDriveStatus('err','Token expired');showNotice('Drive session expired. Please reconnect.','warn',0);return;}
-    const sdata=await search.json();
-    const files=sdata.files||[];
-    if(files.length===0) {
-      await uploadToDrive();
-    } else {
-      const fileId=files[0].id;
-      const dl=await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,{headers:{'Authorization':'Bearer '+driveCfg.token}});
-      const text=await dl.text();
-      try {
-        const remote=JSON.parse(text);
-        const remoteEntries=Array.isArray(remote)?remote:(remote.entries||[]);
-        const localMap={};
-        entries.forEach(e=>localMap[e.id]=e);
-        remoteEntries.forEach(e=>localMap[e.id]=e);
-        entries=Object.values(localMap).sort((a,b)=>b.date.localeCompare(a.date)||(b.id-a.id));
-        if(remote.sizes)   sizes=[...new Set([...sizes,...(remote.sizes||[])])];
-        if(remote.shapes)  shapes=[...new Set([...shapes,...(remote.shapes||[])])];
-        if(remote.colours) colours=[...new Set([...colours,...(remote.colours||[])])];
-        migrateEntries();
-        save();
-      } catch(e){}
-      await uploadToDrive(fileId);
-    }
-    setDriveStatus('ok','Synced');
-    renderAll(); renderShapeChips(); renderColourChips(); renderSizeChips();
+    const res = await fetch(API_URL);
+    if(!res.ok) throw new Error('Server error '+res.status);
+    const data = await res.json();
+    entries  = data.entries  || [];
+    sizes    = data.sizes    || [];
+    shapes   = data.shapes?.length  ? data.shapes  : [...DEFAULT_SHAPES];
+    colours  = data.colours?.length ? data.colours : [...DEFAULT_COLOURS];
+    migrateEntries();
+    save();
+    renderAll();
+    renderShapeChips(); renderColourChips(); renderSizeChips();
     populateShapeDropdown(); populateColourDropdown();
-    showNotice('Synced with Google Drive!','success');
-  } catch(err) { setDriveStatus('err','Error'); showNotice('Drive sync failed: '+err.message,'err'); }
-}
-async function uploadToDrive(fileId) {
-  if(!driveCfg.token) return;
-  const content=JSON.stringify({entries,sizes,shapes,colours,savedAt:new Date().toISOString()},null,2);
-  const blob=new Blob([content],{type:'application/json'});
-  const meta=JSON.stringify({name:DRIVE_FILE,mimeType:'application/json'});
-  const form=new FormData();
-  form.append('metadata',new Blob([meta],{type:'application/json'}));
-  form.append('file',blob);
-  if(!fileId) {
-    const search=await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${DRIVE_FILE}'+and+trashed=false&fields=files(id)`,
-      {headers:{'Authorization':'Bearer '+driveCfg.token}});
-    const sd=await search.json(); fileId=(sd.files||[])[0]?.id;
+    setDriveStatus('ok','Live ✓');
+  } catch(err) {
+    setDriveStatus('err','Offline');
+    showNotice('Could not connect to database. Working with local data.','warn');
   }
-  const url=fileId
-    ?`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`
-    :`https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`;
-  await fetch(url,{method:fileId?'PATCH':'POST',headers:{'Authorization':'Bearer '+driveCfg.token},body:form});
-  setDriveStatus('ok','Saved');
 }
+
+async function saveToDB() {
+  setDriveStatus('busy','Saving...');
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entries, sizes, shapes, colours, savedAt: new Date().toISOString() })
+    });
+    if(!res.ok) throw new Error('Server error '+res.status);
+    setDriveStatus('ok','Saved ✓');
+  } catch(err) {
+    setDriveStatus('err','Save failed');
+    showNotice('Could not save to database. Data is safe locally.','err');
+  }
+}
+
 function scheduleDriveUpload() {
   clearTimeout(syncTimer);
-  syncTimer=setTimeout(()=>{ if(driveCfg.token) uploadToDrive(); }, 2500);
+  syncTimer = setTimeout(saveToDB, 2000);
 }
 
 // ── Init ─────────────────────────────────────────────────────────────────────
@@ -1234,7 +1183,7 @@ function initApp() {
   populateShapeDropdown();
   populateColourDropdown();
   renderDashboard();
-  if(driveCfg.clientId) setDriveStatus('','Configured (not synced)');
+  loadFromDB();
 }
 
 if(sessionStorage.getItem('dl_auth')==='1') initApp();
