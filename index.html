@@ -121,7 +121,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 .badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.02em;}
 .badge.in{background:var(--brand-light);color:var(--brand);}
 .badge.out{background:var(--red-bg);color:var(--red);}
-.badge.edited{background:var(--amber-bg);color:var(--amber);cursor:pointer;font-size:10px;padding:2px 7px;}
 
 /* ── Table ── */
 .table-wrap{overflow-x:auto;}
@@ -425,37 +424,34 @@ tfoot td{padding:10px 14px;font-weight:600;background:var(--surface2);border-top
 
 </div><!-- /shell -->
 
-<!-- Edit Entry Modal -->
-<div class="modal-bg" id="edit-modal">
-  <div class="modal" style="max-width:520px;">
+<!-- Stock Correction Modal -->
+<div class="modal-bg" id="correction-modal">
+  <div class="modal" style="max-width:460px;">
     <div class="modal-header">
-      <span class="modal-title">Edit Entry</span>
-      <button class="btn sm" onclick="closeEditModal()">✕</button>
+      <span class="modal-title">Correct Stock</span>
+      <button class="btn sm" onclick="closeCorrection()">✕</button>
     </div>
-    <div id="edit-original" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.8;"></div>
-    <div class="form-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));">
-      <div class="field"><label>Date *</label><input type="date" id="edit-date"></div>
-      <div class="field"><label>Type *</label>
-        <select id="edit-type"><option value="IN">IN (Received)</option><option value="OUT">OUT (Dispatched)</option></select>
-      </div>
-      <div class="field"><label>Shape *</label>
-        <input type="text" id="edit-shape" list="shape-datalist" autocomplete="off">
-      </div>
-      <div class="field"><label>Length (MM)</label><input type="number" id="edit-length" step="0.01" min="0"></div>
-      <div class="field" id="edit-width-wrap"><label>Width (MM)</label><input type="number" id="edit-width" step="0.01" min="0"></div>
-      <div class="field"><label>Pieces *</label><input type="number" id="edit-pieces" min="0" step="1"></div>
-      <div class="field"><label>Carat Weight *</label><input type="number" id="edit-carats" step="0.001" min="0"></div>
-      <div class="field"><label>Colour</label>
-        <select id="edit-colour"><option value="WHITE">White (Default)</option></select>
-      </div>
-      <div class="field"><label>Ref No.</label><input type="text" id="edit-ref"></div>
-      <div class="field" style="grid-column:span 2;"><label>Notes</label><input type="text" id="edit-notes"></div>
+    <div id="correction-current" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;margin-bottom:16px;line-height:1.9;"></div>
+    <div class="field" style="margin-bottom:16px;">
+      <label>Actual pieces in stock (physical count)</label>
+      <input type="number" id="correction-pieces" min="0" step="1" placeholder="Enter physical count...">
     </div>
-    <div class="btn-row" style="margin-top:4px;">
-      <button class="btn primary" onclick="saveEdit()">✓ Save Changes</button>
-      <button class="btn" onclick="closeEditModal()">Cancel</button>
+    <div class="field" style="margin-bottom:16px;">
+      <label>Actual carat weight in stock</label>
+      <input type="number" id="correction-carats" min="0" step="0.001" placeholder="Enter physical carat weight...">
     </div>
-    <div style="font-size:13px;margin-top:10px;min-height:18px;color:var(--text2);" id="edit-msg"></div>
+    <div class="field" style="margin-bottom:16px;">
+      <label>Reason / Notes</label>
+      <input type="text" id="correction-notes" placeholder="e.g. Physical stock count on 5 Jun 2026">
+    </div>
+    <div style="background:var(--brand-light);border:1px solid #b8cec8;border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--brand-dark);margin-bottom:16px;">
+      A correction entry will be automatically created in the ledger to reconcile the difference. This is your audit trail.
+    </div>
+    <div class="btn-row">
+      <button class="btn primary" onclick="saveCorrection()">✓ Apply Correction</button>
+      <button class="btn" onclick="closeCorrection()">Cancel</button>
+    </div>
+    <div style="font-size:13px;margin-top:10px;min-height:18px;" id="correction-msg"></div>
   </div>
 </div>
 
@@ -851,11 +847,7 @@ function renderLedger() {
     <td class="mono">${fmt3(e.carats)}</td>
     <td>${e.ref||'—'}</td>
     <td>${e.notes||'—'}</td>
-    <td style="white-space:nowrap;display:flex;gap:4px;">
-      ${e._edits ? `<span class="badge edited" onclick="showEditHistory(${e.id})" title="View edit history">✎ Edited</span>` : ''}
-      <button class="btn sm" onclick="openEditModal(${e.id})" title="Edit">✎</button>
-      <button class="btn sm danger" onclick="deleteEntry(${e.id})" title="Delete">✕</button>
-    </td>
+    <td><button class="btn sm danger" onclick="deleteEntry(${e.id})" title="Delete">✕</button></td>
   </tr>`).join('');
   const totInP  = filtered.filter(e=>e.type==='IN').reduce((a,e)=>a+e.pieces,0);
   const totOutP = filtered.filter(e=>e.type==='OUT').reduce((a,e)=>a+e.pieces,0);
@@ -899,7 +891,10 @@ function renderStock() {
     const col = np>0?'var(--brand)':np<0?'var(--red)':'var(--text3)';
     const colLabel = (r.colour&&r.colour!=='WHITE') ? ` · ${r.colour}` : '';
     return `<div class="stock-card">
-      <div class="stock-card-title">💎 ${r.shape} ${r.size}${colLabel}</div>
+      <div class="stock-card-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>💎 ${r.shape} ${r.size}${colLabel}</span>
+        <button class="btn sm" onclick="openCorrection('${r.shape}','${r.size}','${r.colour||'WHITE'}')" style="font-size:11px;padding:3px 8px;">✎ Correct</button>
+      </div>
       <div class="stock-card-row"><span>IN pieces</span><span>${r.inP}</span></div>
       <div class="stock-card-row"><span>OUT pieces</span><span>${r.outP}</span></div>
       <div class="stock-card-row"><span>IN carats</span><span>${fmt3(r.inC)}</span></div>
@@ -1251,129 +1246,89 @@ function scheduleDriveUpload() {
   syncTimer = setTimeout(saveToDB, 2000);
 }
 
-// ── Edit Entry ───────────────────────────────────────────────────────────────
-let editingId = null;
+// ── Stock Correction ─────────────────────────────────────────────────────────
+let correctionTarget = null;
 
-function openEditModal(id) {
-  const e = entries.find(x=>x.id===id);
-  if(!e) return;
-  editingId = id;
+function openCorrection(shape, size, colour) {
+  const map = getStockMap();
+  const row = map.find(r => r.shape===shape && r.size===size && (r.colour||'WHITE')===(colour||'WHITE'));
+  const netP = row ? row.inP - row.outP : 0;
+  const netC = row ? row.inC - row.outC : 0;
+  const colLabel = (colour && colour!=='WHITE') ? ' · '+colour : '';
 
-  // Show original values
-  const orig = el('edit-original');
-  orig.innerHTML = '<strong>Original values:</strong><br>' +
-    `Date: ${fmtDate(e.date)} &nbsp;|&nbsp; Type: ${e.type} &nbsp;|&nbsp; Shape: ${e.shape||'—'} &nbsp;|&nbsp; Size: ${e.size||'—'}<br>` +
-    `Pieces: ${e.pieces} &nbsp;|&nbsp; Carats: ${fmt3(e.carats)} &nbsp;|&nbsp; Colour: ${e.colour||'WHITE'} &nbsp;|&nbsp; Ref: ${e.ref||'—'}`;
+  correctionTarget = { shape, size, colour: colour||'WHITE', netP, netC };
 
-  // Populate form
-  el('edit-date').value    = e.date;
-  el('edit-type').value    = e.type;
-  el('edit-shape').value   = e.shape||'';
-  // Parse size back to length/width
-  const sizeParts = (e.size||'').split('X');
-  el('edit-length').value  = sizeParts[0]||'';
-  el('edit-width').value   = sizeParts[1]||'';
-  el('edit-pieces').value  = e.pieces;
-  el('edit-carats').value  = e.carats;
-  el('edit-ref').value     = e.ref||'';
-  el('edit-notes').value   = e.notes||'';
+  el('correction-current').innerHTML =
+    `<strong>${shape} ${size}${colLabel}</strong><br>` +
+    `Ledger shows: <strong>${netP} pcs · ${fmt3(netC)} ct</strong><br>` +
+    `Enter what you physically have and a correction entry will be created.`;
 
-  // Populate colour dropdown
-  const cSel = el('edit-colour');
-  cSel.innerHTML = '<option value="WHITE">White (Default)</option>' +
-    colours.filter(c=>c!=='WHITE').map(c=>`<option value="${c}" ${c===(e.colour||'WHITE')?'selected':''}>${c.charAt(0)+c.slice(1).toLowerCase()}</option>`).join('');
-  if(e.colour && e.colour!=='WHITE') cSel.value = e.colour;
-
-  // Width visibility
-  const shape = e.shape||'';
-  el('edit-width-wrap').style.display = shape==='ROUND' ? 'none' : 'flex';
-
-  el('edit-msg').textContent = '';
-  el('edit-modal').classList.add('open');
+  el('correction-pieces').value = netP >= 0 ? netP : 0;
+  el('correction-carats').value = netC >= 0 ? fmt3(netC) : '0.000';
+  el('correction-notes').value  = `Physical stock count ${new Date().toLocaleDateString('en-IN')}`;
+  el('correction-msg').textContent = '';
+  el('correction-modal').classList.add('open');
+  setTimeout(()=>el('correction-pieces').focus(), 100);
 }
 
-function closeEditModal() {
-  el('edit-modal').classList.remove('open');
-  editingId = null;
+function closeCorrection() {
+  el('correction-modal').classList.remove('open');
+  correctionTarget = null;
 }
 
-function saveEdit() {
-  const e = entries.find(x=>x.id===editingId);
-  if(!e) return;
-  const msg = el('edit-msg');
+function saveCorrection() {
+  if(!correctionTarget) return;
+  const msg      = el('correction-msg');
+  const actualP  = parseFloat(el('correction-pieces').value);
+  const actualC  = parseFloat(el('correction-carats').value);
+  const notes    = el('correction-notes').value.trim() || 'Stock correction';
 
-  const date   = val('edit-date');
-  const type   = val('edit-type');
-  const shape  = val('edit-shape').toUpperCase().trim();
-  const colour = val('edit-colour').toUpperCase().trim() || 'WHITE';
-  const length = parseFloat(val('edit-length')||0);
-  const width  = shape==='ROUND' ? 0 : parseFloat(val('edit-width')||0);
-  const pieces = parseFloat(val('edit-pieces'));
-  const carats = parseFloat(val('edit-carats'));
-  const ref    = val('edit-ref').trim();
-  const notes  = val('edit-notes').trim();
-
-  if(!date||!shape||!length||isNaN(pieces)||pieces<=0||isNaN(carats)||carats<=0) {
-    msg.style.color='var(--red)'; msg.textContent='Please fill in all required fields.'; return;
+  if(isNaN(actualP) || actualP < 0 || isNaN(actualC) || actualC < 0) {
+    msg.style.color='var(--red)'; msg.textContent='Please enter valid piece and carat counts.'; return;
   }
 
-  const size = shape==='ROUND' ? fmt2(length) : fmt2(length)+'X'+fmt2(width);
+  const { shape, size, colour, netP, netC } = correctionTarget;
+  const diffP = actualP - netP;
+  const diffC = actualC - netC;
 
-  // Record edit history
-  const editRecord = {
-    editedAt: new Date().toISOString(),
-    original: {
-      date: e.date, type: e.type, shape: e.shape, size: e.size,
-      pieces: e.pieces, carats: e.carats, colour: e.colour||'WHITE',
-      ref: e.ref||'', notes: e.notes||''
-    }
+  if(diffP === 0 && Math.abs(diffC) < 0.001) {
+    msg.style.color='var(--text2)'; msg.textContent='No difference — ledger already matches physical stock.'; return;
+  }
+
+  // Create correction entry — IN if we have more than ledger, OUT if less
+  const type   = diffP >= 0 ? 'IN' : 'OUT';
+  const absPcs = Math.abs(diffP);
+  const absCtw = Math.abs(diffC);
+
+  // If only carat difference (pieces same), still need an entry
+  // Use pieces diff if exists, otherwise use 0 pieces with carat correction
+  const entryPcs = absPcs > 0 ? absPcs : 1;
+  const entryCtw = absCtw > 0.0005 ? absCtw : 0.001;
+
+  const correctionEntry = {
+    id:      Date.now(),
+    date:    today(),
+    type:    diffP >= 0 ? 'IN' : 'OUT',
+    shape,
+    size,
+    colour,
+    pieces:  entryPcs,
+    carats:  parseFloat(entryCtw.toFixed(3)),
+    ref:     'CORRECTION',
+    notes:   notes + ` (ledger: ${netP}pcs/${fmt3(netC)}ct → physical: ${actualP}pcs/${fmt3(actualC)}ct)`
   };
 
-  // Build change summary
-  const changes = [];
-  if(e.date    !== date)             changes.push(`Date: ${fmtDate(e.date)} → ${fmtDate(date)}`);
-  if(e.type    !== type)             changes.push(`Type: ${e.type} → ${type}`);
-  if(e.shape   !== shape)            changes.push(`Shape: ${e.shape} → ${shape}`);
-  if(e.size    !== size)             changes.push(`Size: ${e.size} → ${size}`);
-  if(e.pieces  !== pieces)           changes.push(`Pieces: ${e.pieces} → ${pieces}`);
-  if(fmt3(e.carats) !== fmt3(carats)) changes.push(`Carats: ${fmt3(e.carats)} → ${fmt3(carats)}`);
-  if((e.colour||'WHITE') !== colour) changes.push(`Colour: ${e.colour||'WHITE'} → ${colour}`);
-  if((e.ref||'') !== ref)            changes.push(`Ref: ${e.ref||'—'} → ${ref||'—'}`);
-
-  editRecord.changes = changes;
-
-  // Save edit history on the entry
-  if(!e._edits) e._edits = [];
-  e._edits.push(editRecord);
-
-  // Update entry
-  e.date=date; e.type=type; e.shape=shape; e.size=size;
-  e.pieces=pieces; e.carats=carats; e.colour=colour; e.ref=ref; e.notes=notes;
-
-  save(); scheduleDriveUpload();
+  entries.unshift(correctionEntry);
+  save();
+  scheduleDriveUpload();
   renderAll();
-  msg.style.color='var(--brand)'; msg.textContent='Entry updated!';
-  setTimeout(closeEditModal, 1000);
+
+  msg.style.color='var(--brand)';
+  msg.textContent = `Correction applied: ${type} ${entryPcs} pcs / ${fmt3(entryCtw)} ct added to ledger.`;
+  setTimeout(closeCorrection, 2000);
 }
 
-function showEditHistory(id) {
-  const e = entries.find(x=>x.id===id);
-  if(!e||!e._edits||!e._edits.length) return;
-  let msg = 'Edit History:\n\n';
-  e._edits.forEach((ed, i) => {
-    const d = new Date(ed.editedAt).toLocaleString('en-IN');
-    msg += `Edit ${i+1} — ${d}\n`;
-    if(ed.changes && ed.changes.length) {
-      ed.changes.forEach(c => msg += `  • ${c}\n`);
-    } else {
-      msg += '  • No field changes detected\n';
-    }
-    msg += '\n';
-  });
-  alert(msg);
-}
-
-el('edit-modal').addEventListener('click', e=>{ if(e.target===el('edit-modal')) closeEditModal(); });
+el('correction-modal').addEventListener('click', e=>{ if(e.target===el('correction-modal')) closeCorrection(); });
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 function initApp() {
