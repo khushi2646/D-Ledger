@@ -121,6 +121,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 .badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.02em;}
 .badge.in{background:var(--brand-light);color:var(--brand);}
 .badge.out{background:var(--red-bg);color:var(--red);}
+.badge.edited{background:var(--amber-bg);color:var(--amber);cursor:pointer;font-size:10px;padding:2px 7px;}
 
 /* ── Table ── */
 .table-wrap{overflow-x:auto;}
@@ -423,6 +424,40 @@ tfoot td{padding:10px 14px;font-weight:600;background:var(--surface2);border-top
   </div>
 
 </div><!-- /shell -->
+
+<!-- Edit Entry Modal -->
+<div class="modal-bg" id="edit-modal">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <span class="modal-title">Edit Entry</span>
+      <button class="btn sm" onclick="closeEditModal()">✕</button>
+    </div>
+    <div id="edit-original" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.8;"></div>
+    <div class="form-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));">
+      <div class="field"><label>Date *</label><input type="date" id="edit-date"></div>
+      <div class="field"><label>Type *</label>
+        <select id="edit-type"><option value="IN">IN (Received)</option><option value="OUT">OUT (Dispatched)</option></select>
+      </div>
+      <div class="field"><label>Shape *</label>
+        <input type="text" id="edit-shape" list="shape-datalist" autocomplete="off">
+      </div>
+      <div class="field"><label>Length (MM)</label><input type="number" id="edit-length" step="0.01" min="0"></div>
+      <div class="field" id="edit-width-wrap"><label>Width (MM)</label><input type="number" id="edit-width" step="0.01" min="0"></div>
+      <div class="field"><label>Pieces *</label><input type="number" id="edit-pieces" min="0" step="1"></div>
+      <div class="field"><label>Carat Weight *</label><input type="number" id="edit-carats" step="0.001" min="0"></div>
+      <div class="field"><label>Colour</label>
+        <select id="edit-colour"><option value="WHITE">White (Default)</option></select>
+      </div>
+      <div class="field"><label>Ref No.</label><input type="text" id="edit-ref"></div>
+      <div class="field" style="grid-column:span 2;"><label>Notes</label><input type="text" id="edit-notes"></div>
+    </div>
+    <div class="btn-row" style="margin-top:4px;">
+      <button class="btn primary" onclick="saveEdit()">✓ Save Changes</button>
+      <button class="btn" onclick="closeEditModal()">Cancel</button>
+    </div>
+    <div style="font-size:13px;margin-top:10px;min-height:18px;color:var(--text2);" id="edit-msg"></div>
+  </div>
+</div>
 
 <!-- Rename Size Modal -->
 <div class="modal-bg" id="rename-modal">
@@ -816,7 +851,11 @@ function renderLedger() {
     <td class="mono">${fmt3(e.carats)}</td>
     <td>${e.ref||'—'}</td>
     <td>${e.notes||'—'}</td>
-    <td><button class="btn sm danger" onclick="deleteEntry(${e.id})">✕</button></td>
+    <td style="white-space:nowrap;display:flex;gap:4px;">
+      ${e._edits ? `<span class="badge edited" onclick="showEditHistory(${e.id})" title="View edit history">✎ Edited</span>` : ''}
+      <button class="btn sm" onclick="openEditModal(${e.id})" title="Edit">✎</button>
+      <button class="btn sm danger" onclick="deleteEntry(${e.id})" title="Delete">✕</button>
+    </td>
   </tr>`).join('');
   const totInP  = filtered.filter(e=>e.type==='IN').reduce((a,e)=>a+e.pieces,0);
   const totOutP = filtered.filter(e=>e.type==='OUT').reduce((a,e)=>a+e.pieces,0);
@@ -1211,6 +1250,130 @@ function scheduleDriveUpload() {
   clearTimeout(syncTimer);
   syncTimer = setTimeout(saveToDB, 2000);
 }
+
+// ── Edit Entry ───────────────────────────────────────────────────────────────
+let editingId = null;
+
+function openEditModal(id) {
+  const e = entries.find(x=>x.id===id);
+  if(!e) return;
+  editingId = id;
+
+  // Show original values
+  const orig = el('edit-original');
+  orig.innerHTML = '<strong>Original values:</strong><br>' +
+    `Date: ${fmtDate(e.date)} &nbsp;|&nbsp; Type: ${e.type} &nbsp;|&nbsp; Shape: ${e.shape||'—'} &nbsp;|&nbsp; Size: ${e.size||'—'}<br>` +
+    `Pieces: ${e.pieces} &nbsp;|&nbsp; Carats: ${fmt3(e.carats)} &nbsp;|&nbsp; Colour: ${e.colour||'WHITE'} &nbsp;|&nbsp; Ref: ${e.ref||'—'}`;
+
+  // Populate form
+  el('edit-date').value    = e.date;
+  el('edit-type').value    = e.type;
+  el('edit-shape').value   = e.shape||'';
+  // Parse size back to length/width
+  const sizeParts = (e.size||'').split('X');
+  el('edit-length').value  = sizeParts[0]||'';
+  el('edit-width').value   = sizeParts[1]||'';
+  el('edit-pieces').value  = e.pieces;
+  el('edit-carats').value  = e.carats;
+  el('edit-ref').value     = e.ref||'';
+  el('edit-notes').value   = e.notes||'';
+
+  // Populate colour dropdown
+  const cSel = el('edit-colour');
+  cSel.innerHTML = '<option value="WHITE">White (Default)</option>' +
+    colours.filter(c=>c!=='WHITE').map(c=>`<option value="${c}" ${c===(e.colour||'WHITE')?'selected':''}>${c.charAt(0)+c.slice(1).toLowerCase()}</option>`).join('');
+  if(e.colour && e.colour!=='WHITE') cSel.value = e.colour;
+
+  // Width visibility
+  const shape = e.shape||'';
+  el('edit-width-wrap').style.display = shape==='ROUND' ? 'none' : 'flex';
+
+  el('edit-msg').textContent = '';
+  el('edit-modal').classList.add('open');
+}
+
+function closeEditModal() {
+  el('edit-modal').classList.remove('open');
+  editingId = null;
+}
+
+function saveEdit() {
+  const e = entries.find(x=>x.id===editingId);
+  if(!e) return;
+  const msg = el('edit-msg');
+
+  const date   = val('edit-date');
+  const type   = val('edit-type');
+  const shape  = val('edit-shape').toUpperCase().trim();
+  const colour = val('edit-colour').toUpperCase().trim() || 'WHITE';
+  const length = parseFloat(val('edit-length')||0);
+  const width  = shape==='ROUND' ? 0 : parseFloat(val('edit-width')||0);
+  const pieces = parseFloat(val('edit-pieces'));
+  const carats = parseFloat(val('edit-carats'));
+  const ref    = val('edit-ref').trim();
+  const notes  = val('edit-notes').trim();
+
+  if(!date||!shape||!length||isNaN(pieces)||pieces<=0||isNaN(carats)||carats<=0) {
+    msg.style.color='var(--red)'; msg.textContent='Please fill in all required fields.'; return;
+  }
+
+  const size = shape==='ROUND' ? fmt2(length) : fmt2(length)+'X'+fmt2(width);
+
+  // Record edit history
+  const editRecord = {
+    editedAt: new Date().toISOString(),
+    original: {
+      date: e.date, type: e.type, shape: e.shape, size: e.size,
+      pieces: e.pieces, carats: e.carats, colour: e.colour||'WHITE',
+      ref: e.ref||'', notes: e.notes||''
+    }
+  };
+
+  // Build change summary
+  const changes = [];
+  if(e.date    !== date)             changes.push(`Date: ${fmtDate(e.date)} → ${fmtDate(date)}`);
+  if(e.type    !== type)             changes.push(`Type: ${e.type} → ${type}`);
+  if(e.shape   !== shape)            changes.push(`Shape: ${e.shape} → ${shape}`);
+  if(e.size    !== size)             changes.push(`Size: ${e.size} → ${size}`);
+  if(e.pieces  !== pieces)           changes.push(`Pieces: ${e.pieces} → ${pieces}`);
+  if(fmt3(e.carats) !== fmt3(carats)) changes.push(`Carats: ${fmt3(e.carats)} → ${fmt3(carats)}`);
+  if((e.colour||'WHITE') !== colour) changes.push(`Colour: ${e.colour||'WHITE'} → ${colour}`);
+  if((e.ref||'') !== ref)            changes.push(`Ref: ${e.ref||'—'} → ${ref||'—'}`);
+
+  editRecord.changes = changes;
+
+  // Save edit history on the entry
+  if(!e._edits) e._edits = [];
+  e._edits.push(editRecord);
+
+  // Update entry
+  e.date=date; e.type=type; e.shape=shape; e.size=size;
+  e.pieces=pieces; e.carats=carats; e.colour=colour; e.ref=ref; e.notes=notes;
+
+  save(); scheduleDriveUpload();
+  renderAll();
+  msg.style.color='var(--brand)'; msg.textContent='Entry updated!';
+  setTimeout(closeEditModal, 1000);
+}
+
+function showEditHistory(id) {
+  const e = entries.find(x=>x.id===id);
+  if(!e||!e._edits||!e._edits.length) return;
+  let msg = 'Edit History:\n\n';
+  e._edits.forEach((ed, i) => {
+    const d = new Date(ed.editedAt).toLocaleString('en-IN');
+    msg += `Edit ${i+1} — ${d}\n`;
+    if(ed.changes && ed.changes.length) {
+      ed.changes.forEach(c => msg += `  • ${c}\n`);
+    } else {
+      msg += '  • No field changes detected\n';
+    }
+    msg += '\n';
+  });
+  alert(msg);
+}
+
+el('edit-modal').addEventListener('click', e=>{ if(e.target===el('edit-modal')) closeEditModal(); });
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 function initApp() {
