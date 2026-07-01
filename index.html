@@ -515,11 +515,23 @@ const val    = id => (el(id)||{}).value || '';
 function buildLabel(shape, length, width, colour) {
   shape  = (shape||'').toUpperCase().trim();
   colour = (colour||'WHITE').toUpperCase().trim();
-  const l = fmt2(length);
-  const w = fmt2(width);
-  let label = shape === 'ROUND' ? `${shape} ${l}` : `${shape} ${l}X${w}`;
+  // Normalise dimensions — always store smaller value first so 4X5 === 5X4
+  let l = parseFloat(length||0);
+  let w = parseFloat(width||0);
+  if(shape !== 'ROUND' && w > 0 && l > w) { const tmp=l; l=w; w=tmp; }
+  const lStr = fmt2(l);
+  const wStr = fmt2(w);
+  let label = shape === 'ROUND' ? `${shape} ${lStr}` : `${shape} ${lStr}X${wStr}`;
   if(colour && colour !== 'WHITE') label += ` ${colour}`;
   return label;
+}
+
+function normaliseDims(shape, length, width) {
+  // Returns [length, width] normalised so smaller is always first
+  let l = parseFloat(length||0);
+  let w = parseFloat(width||0);
+  if(shape !== 'ROUND' && w > 0 && l > w) { const tmp=l; l=w; w=tmp; }
+  return [l, w];
 }
 
 function stockKey(e) {
@@ -641,7 +653,9 @@ function updatePreview() {
   const prev   = el('size-preview');
   if(!shape || !length) { if(prev) prev.style.display='none'; return; }
   const map    = getStockMap();
-  const row    = map.find(r => r.key === stockKey({shape, size: shape==='ROUND'?fmt2(length):fmt2(length)+'X'+fmt2(width), colour}));
+  const [pNormL, pNormW] = normaliseDims(shape, length, width);
+  const pSize = shape==='ROUND' ? fmt2(pNormL) : fmt2(pNormL)+'X'+fmt2(pNormW);
+  const row    = map.find(r => r.key === stockKey({shape, size: pSize, colour}));
   const netP   = row ? row.inP - row.outP : 0;
   const netC   = row ? row.inC - row.outC : 0;
   const label  = buildLabel(shape, length, width, colour);
@@ -691,7 +705,8 @@ function addEntry() {
   }
 
   // Size stored as just the measurement, shape stored separately
-  const size = shape==='ROUND' ? fmt2(length) : fmt2(length)+'X'+fmt2(width);
+  const [normL, normW] = normaliseDims(shape, length, width);
+  const size = shape==='ROUND' ? fmt2(normL) : fmt2(normL)+'X'+fmt2(normW);
 
   // Check for deficit on OUT entries and warn user
   if(type === 'OUT') {
@@ -875,7 +890,10 @@ function getStockMap() {
     if(e.type==='IN')  { map[k].inP+=e.pieces; map[k].inC+=e.carats; }
     else               { map[k].outP+=e.pieces; map[k].outC+=e.carats; }
   });
-  return Object.values(map).sort((a,b)=>(a.shape+a.size).localeCompare(b.shape+b.size));
+  const rows = Object.values(map).sort((a,b)=>(a.shape+a.size).localeCompare(b.shape+b.size));
+  // If net pieces = 0, net carats should also be 0
+  rows.forEach(r => { if(r.inP - r.outP === 0) { r.inC = r.outC; } });
+  return rows;
 }
 function renderStock() {
   const q    = (el('stock-search')?.value||'').toLowerCase().trim();
@@ -1278,53 +1296,70 @@ function closeCorrection() {
 
 function saveCorrection() {
   if(!correctionTarget) return;
-  const msg      = el('correction-msg');
-  const actualP  = parseFloat(el('correction-pieces').value);
-  const actualC  = parseFloat(el('correction-carats').value);
-  const notes    = el('correction-notes').value.trim() || 'Stock correction';
+  const msg     = el('correction-msg');
+  const actualP = parseFloat(el('correction-pieces').value);
+  const actualC = parseFloat(el('correction-carats').value);
+  const notes   = el('correction-notes').value.trim() || 'Stock correction';
 
   if(isNaN(actualP) || actualP < 0 || isNaN(actualC) || actualC < 0) {
-    msg.style.color='var(--red)'; msg.textContent='Please enter valid piece and carat counts.'; return;
+    msg.style.color='var(--red)'; msg.textContent='Please enter valid values.'; return;
   }
 
+  const finalActualC = actualP === 0 ? 0 : actualC;
   const { shape, size, colour, netP, netC } = correctionTarget;
-  const diffP = actualP - netP;
-  const diffC = actualC - netC;
+  const diffP = Math.round((actualP - netP) * 1000) / 1000;
+  const diffC = Math.round((finalActualC - netC) * 1000) / 1000;
 
   if(diffP === 0 && Math.abs(diffC) < 0.001) {
     msg.style.color='var(--text2)'; msg.textContent='No difference — ledger already matches physical stock.'; return;
   }
 
-  // Create correction entry — IN if we have more than ledger, OUT if less
-  const type   = diffP >= 0 ? 'IN' : 'OUT';
-  const absPcs = Math.abs(diffP);
-  const absCtw = Math.abs(diffC);
+  const auditNote = `${notes} (ledger: ${netP}pcs/${fmt3(netC)}ct → physical: ${actualP}pcs/${fmt3(finalActualC)}ct)`;
+  const ts = Date.now();
+  const newEntries = [];
 
-  // If only carat difference (pieces same), still need an entry
-  // Use pieces diff if exists, otherwise use 0 pieces with carat correction
-  const entryPcs = absPcs > 0 ? absPcs : 1;
-  const entryCtw = absCtw > 0.0005 ? absCtw : 0.001;
+  if(diffP !== 0 && Math.abs(diffC) >= 0.001 && (diffP > 0) === (diffC > 0)) {
+    // Same direction — one clean entry handles both
+    newEntries.push({ id:ts, date:today(), type:diffP>0?'IN':'OUT', shape, size, colour,
+      pieces:Math.abs(diffP), carats:parseFloat(Math.abs(diffC).toFixed(3)), ref:'CORRECTION', notes:auditNote });
 
-  const correctionEntry = {
-    id:      Date.now(),
-    date:    today(),
-    type:    diffP >= 0 ? 'IN' : 'OUT',
-    shape,
-    size,
-    colour,
-    pieces:  entryPcs,
-    carats:  parseFloat(entryCtw.toFixed(3)),
-    ref:     'CORRECTION',
-    notes:   notes + ` (ledger: ${netP}pcs/${fmt3(netC)}ct → physical: ${actualP}pcs/${fmt3(actualC)}ct)`
-  };
+  } else if(diffP !== 0 && Math.abs(diffC) < 0.001) {
+    // Only pieces differ
+    newEntries.push({ id:ts, date:today(), type:diffP>0?'IN':'OUT', shape, size, colour,
+      pieces:Math.abs(diffP), carats:0.001, ref:'CORRECTION', notes:auditNote+' [pieces]' });
 
-  entries.unshift(correctionEntry);
+  } else if(diffP === 0 && Math.abs(diffC) >= 0.001) {
+    // Only carats differ — use a pair of entries that cancel out on pieces
+    newEntries.push({ id:ts, date:today(), type:diffC>0?'IN':'OUT', shape, size, colour,
+      pieces:1, carats:parseFloat((Math.abs(diffC)+0.001).toFixed(3)), ref:'CORRECTION', notes:auditNote+' [carats]' });
+    newEntries.push({ id:ts+1, date:today(), type:diffC>0?'OUT':'IN', shape, size, colour,
+      pieces:1, carats:0.001, ref:'CORRECTION', notes:auditNote+' [carats offset]' });
+
+  } else {
+    // Opposite directions — handle each independently
+    newEntries.push({ id:ts, date:today(), type:diffP>0?'IN':'OUT', shape, size, colour,
+      pieces:Math.abs(diffP), carats:0.001, ref:'CORRECTION', notes:auditNote+' [pieces]' });
+    // After piece entry, remaining carat diff
+    const cAfterPiece = netC + (diffP > 0 ? 0.001 : -0.001);
+    const remainC = Math.round((finalActualC - cAfterPiece) * 1000) / 1000;
+    if(Math.abs(remainC) >= 0.001) {
+      newEntries.push({ id:ts+1, date:today(), type:remainC>0?'IN':'OUT', shape, size, colour,
+        pieces:1, carats:parseFloat((Math.abs(remainC)+0.001).toFixed(3)), ref:'CORRECTION', notes:auditNote+' [carats]' });
+      newEntries.push({ id:ts+2, date:today(), type:remainC>0?'OUT':'IN', shape, size, colour,
+        pieces:1, carats:0.001, ref:'CORRECTION', notes:auditNote+' [carats offset]' });
+    }
+  }
+
+  newEntries.forEach(e => entries.unshift(e));
   save();
   scheduleDriveUpload();
   renderAll();
 
+  const parts = [];
+  if(diffP !== 0) parts.push(`${Math.abs(diffP)} pcs ${diffP>0?'added':'removed'}`);
+  if(Math.abs(diffC) >= 0.001) parts.push(`${fmt3(Math.abs(diffC))} ct ${diffC>0?'added':'removed'}`);
   msg.style.color='var(--brand)';
-  msg.textContent = `Correction applied: ${type} ${entryPcs} pcs / ${fmt3(entryCtw)} ct added to ledger.`;
+  msg.textContent = 'Correction applied: ' + parts.join(' · ');
   setTimeout(closeCorrection, 2000);
 }
 
