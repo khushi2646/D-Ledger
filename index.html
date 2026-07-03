@@ -121,6 +121,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 .badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.02em;}
 .badge.in{background:var(--brand-light);color:var(--brand);}
 .badge.out{background:var(--red-bg);color:var(--red);}
+.badge.correction{background:var(--amber-bg);color:var(--amber);}
 
 /* ── Table ── */
 .table-wrap{overflow-x:auto;}
@@ -327,7 +328,7 @@ tfoot td{padding:10px 14px;font-weight:600;background:var(--surface2);border-top
           <input type="text" id="fl-search" placeholder="🔍 Search..." oninput="renderLedger()" style="min-width:160px;">
           <select id="fl-shape" onchange="renderLedger()"><option value="">All shapes</option></select>
           <select id="fl-size" onchange="renderLedger()"><option value="">All sizes</option></select>
-          <select id="fl-type" onchange="renderLedger()"><option value="">All types</option><option value="IN">IN only</option><option value="OUT">OUT only</option></select>
+          <select id="fl-type" onchange="renderLedger()"><option value="">All types</option><option value="IN">IN only</option><option value="OUT">OUT only</option><option value="CORRECTION">Corrections only</option></select>
           <input type="date" id="fl-from" onchange="renderLedger()" title="From date">
           <span style="font-size:12px;color:var(--text3);">to</span>
           <input type="date" id="fl-to" onchange="renderLedger()" title="To date">
@@ -515,10 +516,10 @@ const val    = id => (el(id)||{}).value || '';
 function buildLabel(shape, length, width, colour) {
   shape  = (shape||'').toUpperCase().trim();
   colour = (colour||'WHITE').toUpperCase().trim();
-  // Normalise dimensions — always store smaller value first so 4X5 === 5X4
+  // Normalise dimensions — always store larger value first so 4X5 === 5X4
   let l = parseFloat(length||0);
   let w = parseFloat(width||0);
-  if(shape !== 'ROUND' && w > 0 && l > w) { const tmp=l; l=w; w=tmp; }
+  if(shape !== 'ROUND' && w > 0 && w > l) { const tmp=l; l=w; w=tmp; }
   const lStr = fmt2(l);
   const wStr = fmt2(w);
   let label = shape === 'ROUND' ? `${shape} ${lStr}` : `${shape} ${lStr}X${wStr}`;
@@ -527,10 +528,10 @@ function buildLabel(shape, length, width, colour) {
 }
 
 function normaliseDims(shape, length, width) {
-  // Returns [length, width] normalised so smaller is always first
+  // Returns [length, width] normalised so larger is always first
   let l = parseFloat(length||0);
   let w = parseFloat(width||0);
-  if(shape !== 'ROUND' && w > 0 && l > w) { const tmp=l; l=w; w=tmp; }
+  if(shape !== 'ROUND' && w > 0 && w > l) { const tmp=l; l=w; w=tmp; }
   return [l, w];
 }
 
@@ -788,7 +789,7 @@ function renderDashboard() {
   tbody.innerHTML = r.length
     ? r.map(e=>`<tr>
         <td>${fmtDate(e.date)}</td>
-        <td><span class="badge ${e.type.toLowerCase()}">${e.type}</span></td>
+        <td><span class="badge ${e.type==='CORRECTION'?'correction':e.type.toLowerCase()}">${e.type}</span></td>
         <td>${e.shape||'—'}</td>
         <td class="mono">${e.size||'—'}</td>
         <td>${(e.colour&&e.colour!=='WHITE')?e.colour:'—'}</td>
@@ -808,7 +809,7 @@ function renderTodayEntries() {
   const list = [...entries].filter(e=>e.date===t).sort((a,b)=>b.id-a.id);
   tbody.innerHTML = list.length
     ? list.map(e=>`<tr>
-        <td><span class="badge ${e.type.toLowerCase()}">${e.type}</span></td>
+        <td><span class="badge ${e.type==='CORRECTION'?'correction':e.type.toLowerCase()}">${e.type}</span></td>
         <td>${e.shape||'—'}</td>
         <td class="mono">${e.size||'—'}</td>
         <td>${(e.colour&&e.colour!=='WHITE')?e.colour:'—'}</td>
@@ -854,7 +855,7 @@ function renderLedger() {
   tbody.innerHTML = filtered.map((e,i)=>`<tr>
     <td class="mono" style="color:var(--text3)">${filtered.length-i}</td>
     <td>${fmtDate(e.date)}</td>
-    <td><span class="badge ${e.type.toLowerCase()}">${e.type}</span></td>
+    <td><span class="badge ${e.type==='CORRECTION'?'correction':e.type.toLowerCase()}">${e.type}</span></td>
     <td>${e.shape||'—'}</td>
     <td class="mono">${e.size||'—'}</td>
     <td>${(e.colour&&e.colour!=='WHITE')?e.colour:'—'}</td>
@@ -887,8 +888,15 @@ function getStockMap() {
   entries.forEach(e => {
     const k = stockKey(e);
     if(!map[k]) map[k] = { key:k, shape:e.shape||'', size:e.size||'', colour:e.colour||'WHITE', inP:0, outP:0, inC:0, outC:0 };
-    if(e.type==='IN')  { map[k].inP+=e.pieces; map[k].inC+=e.carats; }
-    else               { map[k].outP+=e.pieces; map[k].outC+=e.carats; }
+    if(e.type==='IN')         { map[k].inP+=e.pieces; map[k].inC+=e.carats; }
+    else if(e.type==='OUT')   { map[k].outP+=e.pieces; map[k].outC+=e.carats; }
+    else if(e.type==='CORRECTION') {
+      // Apply correction diff directly — pieces/carats can be positive or negative
+      if(e.pieces > 0) map[k].inP += e.pieces;
+      else if(e.pieces < 0) map[k].outP += Math.abs(e.pieces);
+      if(e.carats > 0) map[k].inC += e.carats;
+      else if(e.carats < 0) map[k].outC += Math.abs(e.carats);
+    }
   });
   const rows = Object.values(map).sort((a,b)=>(a.shape+a.size).localeCompare(b.shape+b.size));
   // If net pieces = 0, net carats should also be 0
@@ -1315,42 +1323,19 @@ function saveCorrection() {
   }
 
   const auditNote = `${notes} (ledger: ${netP}pcs/${fmt3(netC)}ct → physical: ${actualP}pcs/${fmt3(finalActualC)}ct)`;
-  const ts = Date.now();
-  const newEntries = [];
 
-  if(diffP !== 0 && Math.abs(diffC) >= 0.001 && (diffP > 0) === (diffC > 0)) {
-    // Same direction — one clean entry handles both
-    newEntries.push({ id:ts, date:today(), type:diffP>0?'IN':'OUT', shape, size, colour,
-      pieces:Math.abs(diffP), carats:parseFloat(Math.abs(diffC).toFixed(3)), ref:'CORRECTION', notes:auditNote });
+  // Single CORRECTION entry — stores the diff directly (can be negative)
+  entries.unshift({
+    id:      Date.now(),
+    date:    today(),
+    type:    'CORRECTION',
+    shape, size, colour,
+    pieces:  diffP,   // can be positive, negative, or 0
+    carats:  diffC,   // can be positive, negative, or 0
+    ref:     'CORRECTION',
+    notes:   auditNote
+  });
 
-  } else if(diffP !== 0 && Math.abs(diffC) < 0.001) {
-    // Only pieces differ
-    newEntries.push({ id:ts, date:today(), type:diffP>0?'IN':'OUT', shape, size, colour,
-      pieces:Math.abs(diffP), carats:0.001, ref:'CORRECTION', notes:auditNote+' [pieces]' });
-
-  } else if(diffP === 0 && Math.abs(diffC) >= 0.001) {
-    // Only carats differ — use a pair of entries that cancel out on pieces
-    newEntries.push({ id:ts, date:today(), type:diffC>0?'IN':'OUT', shape, size, colour,
-      pieces:1, carats:parseFloat((Math.abs(diffC)+0.001).toFixed(3)), ref:'CORRECTION', notes:auditNote+' [carats]' });
-    newEntries.push({ id:ts+1, date:today(), type:diffC>0?'OUT':'IN', shape, size, colour,
-      pieces:1, carats:0.001, ref:'CORRECTION', notes:auditNote+' [carats offset]' });
-
-  } else {
-    // Opposite directions — handle each independently
-    newEntries.push({ id:ts, date:today(), type:diffP>0?'IN':'OUT', shape, size, colour,
-      pieces:Math.abs(diffP), carats:0.001, ref:'CORRECTION', notes:auditNote+' [pieces]' });
-    // After piece entry, remaining carat diff
-    const cAfterPiece = netC + (diffP > 0 ? 0.001 : -0.001);
-    const remainC = Math.round((finalActualC - cAfterPiece) * 1000) / 1000;
-    if(Math.abs(remainC) >= 0.001) {
-      newEntries.push({ id:ts+1, date:today(), type:remainC>0?'IN':'OUT', shape, size, colour,
-        pieces:1, carats:parseFloat((Math.abs(remainC)+0.001).toFixed(3)), ref:'CORRECTION', notes:auditNote+' [carats]' });
-      newEntries.push({ id:ts+2, date:today(), type:remainC>0?'OUT':'IN', shape, size, colour,
-        pieces:1, carats:0.001, ref:'CORRECTION', notes:auditNote+' [carats offset]' });
-    }
-  }
-
-  newEntries.forEach(e => entries.unshift(e));
   save();
   scheduleDriveUpload();
   renderAll();
